@@ -4,6 +4,16 @@ from enum import Enum
 from pydantic import BaseModel, field_validator
 
 
+class ExpenditureCategory(Enum):
+    CONTRACTS = 'contract'
+    TRAVEL = 'travel'
+    HOSPITALITY = 'hospitality'
+
+    @property
+    def file_name(self) -> str:
+        return f'gov_{self.value}_expenditures.csv'
+
+
 class TravelPurpose(Enum):
     ATTEND_CONSTITUENCY_EVENT = 'To attend a constituency or community event'
     OFFICE_BUSINESS = 'To conduct constituency office business'
