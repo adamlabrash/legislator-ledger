@@ -31,6 +31,7 @@ class TravellerType(Enum):
     EMPLOYEE = 'Employee'
     DEPENDANT = 'Dependant'
     HOUSE_OFFICER_EMPLOYEE = 'House Officer Employee'
+    PARLIAMENTARY_INTERN = 'Parliamentary Intern'
 
 
 class TravelEvent(BaseModel):
