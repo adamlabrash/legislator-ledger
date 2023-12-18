@@ -1,12 +1,17 @@
 import csv
 import json
+from typing import Iterator
 from geopy.geocoders import Nominatim
+from geopy.location import Location
 from pydantic import BaseModel, model_validator
 from haversine import haversine
 
 '''
-Maps location data and nearest airport to MP travel events
+This script extracts the unique locations from the travel expenditure reports 
+and then uses the geopy library to find the nearest airport to each location. The results are written to a locations.csv file.
+This location data is then used with the carbon_calculator module to calculate the carbon footprint of each travel event.
 '''
+
 
 def extract_unique_locations_from_travel_events_csv() -> set[str]:
     locations = set()
@@ -27,17 +32,8 @@ def extract_unique_locations_from_travel_events_csv() -> set[str]:
 loc = Nominatim(user_agent="GetLoc")
 
 
-def get_location_data_of(location: str) -> dict:
-    # if location == "Saint George's":
-    #     location = "Saint George's newfoundland"
-    try:
-        return loc.geocode(location, country_codes='CA', exactly_one=True)
-    except Exception as e:
-        print(f"ERROR GETTING LOCATION DATA: {location}", e)
-        # import pdb
-
-        # pdb.set_trace()
-        return None
+def get_geo_data_of_location(location: str) -> Location | None:
+    return loc.geocode(location, country_codes='CA', exactly_one=True)
 
 
 class Airport(BaseModel):
@@ -56,12 +52,7 @@ class Airport(BaseModel):
         return haversine((self.lat, self.lon), (lat, lon))
 
 
-def get_closest_airport_to_coordinates(airports: list[Airport], lat: float, lon: float) -> Airport:
-    closest_airport = min(airports, key=lambda airport: airport.distance_from_coordinates(lat, lon))
-    return closest_airport
-
-
-def get_airport_list() -> list[Airport]:
+def load_airport_data_from_json() -> list[Airport]:
     airports = []
     with open('carbon_calculator/sources/airport.json') as file:
         data = json.load(file)
@@ -74,30 +65,34 @@ def get_airport_list() -> list[Airport]:
     return airports
 
 
-def get_airports_of_travel_event_locations():
-    airports = get_airport_list()
+airports = load_airport_data_from_json()
+
+
+def get_closest_airport_to_coordinates(lat: float, lon: float) -> Airport:
+    return min(airports, key=lambda airport: airport.distance_from_coordinates(lat, lon))
+
+
+def map_airport_data_to_travel_event_locations() -> Iterator[list[str]]:
+    for location in extract_unique_locations_from_travel_events_csv():
+        if location_data := get_geo_data_of_location(location):
+            closest_airport = get_closest_airport_to_coordinates(location_data.latitude, location_data.longitude)
+
+            yield [
+                location,
+                location_data.latitude,
+                location_data.longitude,
+                closest_airport.iata_code,
+                location_data.address,
+            ]
+
+
+if __name__ == '__main__':
     with open('locations.csv', 'a') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',')
         csvwriter.writerow(['location', 'latitude', 'longitude', 'nearest_airport', 'full_address'])
-        for location in extract_unique_locations_from_travel_events_csv():
-            if location_data := get_location_data_of(location):
-                closest_airport = get_closest_airport_to_coordinates(
-                    airports, location_data.latitude, location_data.longitude
-                )
-                csvwriter.writerow(
-                    [
-                        location,
-                        location_data.latitude,
-                        location_data.longitude,
-                        closest_airport.iata_code,
-                        location_data.address,
-                    ]
-                )
-            else:
-                print(f"UNABLE TO FIND DATA FOR {location}")
 
-
-airports = get_airport_list()
+        for row in map_airport_data_to_travel_event_locations():
+            csvwriter.writerow(row)
 
 locations = set()
 with open('locations.csv', 'r') as csvfile:
@@ -116,14 +111,11 @@ with open('etl/data/travel_events_2.csv', 'r') as eventsfile:
             missing_locations.add(row[-2])
         if row[-3] not in locations:
             missing_locations.add(row[-3])
-    import pdb
-
-    pdb.set_trace()
 
     for location in missing_locations:
         print(f'Processing location: {location}')
         if location:
-            if location_data := get_location_data_of(location):
+            if location_data := get_geo_data_of_location(location):
                 closest_airport = get_closest_airport_to_coordinates(
                     airports, location_data.latitude, location_data.longitude
                 )
@@ -146,50 +138,3 @@ except:
     import pdb
 
     pdb.set_trace()
-
-
-# TODO -> manually check airports are correct for major locations
-
-
-# fogo island region
-#'Central Waterville'
-# 'Seine River Indian Reserve 22A2'
-# "Saint George's"
-#'Central Waterville'
-# Thompson (City / Ville)
-
-# TODO manually add locations of flights that don't have locations
-# TODO make OTTAWA lowercase
-
-# St. John's
-# North Vancouver (City / Ville)
-# Norris Arm North Side
-# Sandy Point (Norris Arm)
-# Roblin
-# saint george
-# Montreal
-# Old Massett
-# Hawke's Bay
-# Pidgeon Cove-St Barbe
-# Saint-Isidore-de-Laprairie
-# Cape Saint Mary's
-# Mayne Island Indian Reserve 6
-# Charlottetown (Eagle River)
-# Lytton Indian Reserve 13A
-# Scowlitz Indian Reserve 1
-# Big White
-# Elsipogtog First Nation
-# RAWD
-# Bathurst (Parish / Paroisse)
-# Saint-Joseph-de-Blandford
-# new Bandon Northumb Co
-# Paradise Valley
-# Two Hills County No. 21
-# Constance Lake Indian Reserve 92
-# Ways Mills
-# 127 Mile House
-# Moose Lake (The Pas)
-# Paintearth County No. 18
-# Saint Jacques-Coomb's Cove
-# Kanaka Bar Indian Reserve 1A
-# Saint Vincent's-St. Stephen's-Peter's River
