@@ -13,29 +13,6 @@ This location data is then used with the carbon_calculator module to calculate t
 '''
 
 
-def extract_unique_locations_from_travel_events_csv() -> set[str]:
-    locations = set()
-    with open('data/travel_events.csv', 'r') as csvfile:
-        csvreader = csv.reader(csvfile, delimiter=',')
-        next(csvreader)  # skip header
-        for row in csvreader:
-            # trip cancellation events have no location
-            if row[-2] == '' or row[-3] == '':
-                continue
-
-            locations.add(row[-2])
-            locations.add(row[-3])
-
-    return locations
-
-
-loc = Nominatim(user_agent="GetLoc")
-
-
-def get_geo_data_of_location(location: str) -> Location | None:
-    return loc.geocode(location, country_codes='CA', exactly_one=True)
-
-
 class Airport(BaseModel):
     iata_code: str
     lat: float
@@ -52,7 +29,23 @@ class Airport(BaseModel):
         return haversine((self.lat, self.lon), (lat, lon))
 
 
-def load_airport_data_from_json() -> list[Airport]:
+def extract_unique_locations_from_travel_events_csv() -> set[str]:
+    locations = set()
+    with open('data/travel_events.csv', 'r') as csvfile:
+        csvreader = csv.reader(csvfile, delimiter=',')
+        next(csvreader)  # skip header
+        for row in csvreader:
+            # trip cancellation events have no location
+            if row[-2] == '' or row[-3] == '':
+                continue
+
+            locations.add(row[-2])
+            locations.add(row[-3])
+
+    return locations
+
+
+def load_airport_data_from_json_file() -> list[Airport]:
     airports = []
     with open('carbon_calculator/sources/airport.json') as file:
         data = json.load(file)
@@ -65,25 +58,28 @@ def load_airport_data_from_json() -> list[Airport]:
     return airports
 
 
-airports = load_airport_data_from_json()
+def get_location_data_from_travel_events_csv() -> Iterator[Location]:
+    geo_api = Nominatim(user_agent="GetLoc")
 
-
-def get_closest_airport_to_coordinates(lat: float, lon: float) -> Airport:
-    return min(airports, key=lambda airport: airport.distance_from_coordinates(lat, lon))
+    for location in extract_unique_locations_from_travel_events_csv():
+        if location_data := geo_api.geocode(location, country_codes='CA', exactly_one=True):
+            yield location_data
 
 
 def map_airport_data_to_travel_event_locations() -> Iterator[list[str]]:
-    for location in extract_unique_locations_from_travel_events_csv():
-        if location_data := get_geo_data_of_location(location):
-            closest_airport = get_closest_airport_to_coordinates(location_data.latitude, location_data.longitude)
+    airports = load_airport_data_from_json_file()
+    for location in get_location_data_from_travel_events_csv():
+        closest_airport = min(
+            airports, key=lambda airport: airport.distance_from_coordinates(location.latitude, location.longitude)
+        )
 
-            yield [
-                location,
-                location_data.latitude,
-                location_data.longitude,
-                closest_airport.iata_code,
-                location_data.address,
-            ]
+        yield [
+            location,
+            location.latitude,
+            location.longitude,
+            closest_airport.iata_code,
+            location.address,
+        ]
 
 
 if __name__ == '__main__':
@@ -91,50 +87,5 @@ if __name__ == '__main__':
         csvwriter = csv.writer(csvfile, delimiter=',')
         csvwriter.writerow(['location', 'latitude', 'longitude', 'nearest_airport', 'full_address'])
 
-        for row in map_airport_data_to_travel_event_locations():
-            csvwriter.writerow(row)
-
-locations = set()
-with open('locations.csv', 'r') as csvfile:
-    reader = csv.reader(csvfile)
-    for row in reader:
-        locations.add(row[0])
-
-
-locations_new = []
-with open('etl/data/travel_events_2.csv', 'r') as eventsfile:
-    eventsreader = csv.reader(eventsfile)
-    next(eventsreader)
-    missing_locations = set()
-    for row in eventsreader:
-        if row[-2] not in locations:
-            missing_locations.add(row[-2])
-        if row[-3] not in locations:
-            missing_locations.add(row[-3])
-
-    for location in missing_locations:
-        print(f'Processing location: {location}')
-        if location:
-            if location_data := get_geo_data_of_location(location):
-                closest_airport = get_closest_airport_to_coordinates(
-                    airports, location_data.latitude, location_data.longitude
-                )
-                locations_new.append(
-                    [
-                        location,
-                        location_data.latitude,
-                        location_data.longitude,
-                        closest_airport.iata_code,
-                        location_data.address,
-                    ]
-                )
-try:
-    with open('locations.csv', 'a') as locationfile:
-        writer = csv.writer(locationfile)
-        for location_new in locations_new:
-            print(location_new)
-            writer.writerow(location_new)
-except:
-    import pdb
-
-    pdb.set_trace()
+        for airport_data in map_airport_data_to_travel_event_locations():
+            csvwriter.writerow(airport_data)
