@@ -2,6 +2,7 @@ import csv
 
 '''
 Script that identifies missing location data
+TODO finish this
 '''
 
 

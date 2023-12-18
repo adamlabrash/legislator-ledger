@@ -2,3 +2,4 @@ manually upload certain locations
 run carbon_calculator
 verify Findlay, Hon. Kerry-Lynne, vacants
 upload methodology, schema, analysis, FAQ to readme
+remove negative values from dataset, round decimals

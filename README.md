@@ -1,5 +1,5 @@
 
-# The Legislator Ledger
+<h1 style="text-align: center;">The Legislator Ledger</h1>
 
 This project tracks and estimates the carbon emissions of Canadian Member of Parliment flights, and aggregates thousands of expenditure reports for individual Members of Parliment into accessible datasets.
 
