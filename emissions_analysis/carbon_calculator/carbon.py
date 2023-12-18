@@ -1,7 +1,7 @@
 "carbon.py contains the main class Carbon, from which all transport modes will inherit"
 
-import os
 import json
+import os
 
 
 class Carbon(object):

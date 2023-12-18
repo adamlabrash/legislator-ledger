@@ -1,7 +1,7 @@
 import csv
 from urllib.parse import unquote
 
-from etl.models import ExpenditureCategory
+from expenditures_etl.models import ExpenditureCategory
 
 
 def determine_expenditure_category_of_csv_file(csv_title_row: str) -> ExpenditureCategory:

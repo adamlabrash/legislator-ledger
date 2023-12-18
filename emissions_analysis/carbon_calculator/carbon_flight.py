@@ -1,6 +1,6 @@
 "carbon-flight.py calculates the emissions of passengers taking a flight"
 
-from math import radians, cos, sin, asin, sqrt
+from math import asin, cos, radians, sin, sqrt
 
 from carbon import Carbon
 

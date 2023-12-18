@@ -1,10 +1,11 @@
 import csv
 import json
 from typing import Iterator
+
 from geopy.geocoders import Nominatim
 from geopy.location import Location
-from pydantic import BaseModel, model_validator
 from haversine import haversine
+from pydantic import BaseModel, model_validator
 
 '''
 This script extracts the unique locations from the travel expenditure reports 
