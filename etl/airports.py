@@ -3,19 +3,10 @@ import json
 from geopy.geocoders import Nominatim
 from pydantic import BaseModel, model_validator
 from haversine import haversine
-from supabase import create_client, Client
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-url: str = os.environ["SUPABASE_URL"]
-key: str = os.environ["SUPABASE_KEY"]
-supabase: Client = create_client(url, key)
 
 '''
 Maps location data and nearest airport to MP travel events
 '''
-
 
 def extract_unique_locations_from_travel_events_csv() -> set[str]:
     locations = set()
