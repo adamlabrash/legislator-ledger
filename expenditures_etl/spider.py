@@ -1,13 +1,13 @@
+import warnings
+from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Iterator
 from urllib.parse import unquote
+
 import requests
+from bs4 import BeautifulSoup
+from csv_loader import write_downloaded_csv_into_aggregate_csv
 from requests import HTTPError, Response
 from requests.structures import CaseInsensitiveDict
-from bs4 import BeautifulSoup
-import warnings
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import wait
-from csv_loader import write_downloaded_csv_into_aggregate_csv
 
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
@@ -32,7 +32,7 @@ def get_csv_download_links_from_expenditure_report_pages() -> Iterator[str]:
             yield from extract_csv_download_links_from_webpage(resp.text)
 
 
-def extract_mp_name_from_csv_download_headers(headers: CaseInsensitiveDict[str]) -> str:
+def extract_mp_name_from_csv_download_headers(headers: CaseInsensitiveDict) -> str:
     headers_partition = unquote(headers['Content-Disposition']).split('.csv')[-2].split('_')
     last_name, first_name = headers_partition[-2], headers_partition[-1]
     return f'{last_name}, {first_name}'

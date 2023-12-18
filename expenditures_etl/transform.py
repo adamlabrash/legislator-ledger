@@ -1,10 +1,21 @@
 import csv
 from typing import Any
 from urllib.parse import unquote
+
 from models import TravelClaim, TravelEvent
 
 
-# TODO clean this -> use data models
+'''
+transform the gov_travel_expenditures.csv file into travel_claims and travel_events csv files.
+travel_claims.csv and travel_events.csv break down the data from gov_travel_expenditures.csv into two tables that can be joined on claim_id.
+These two tables are how the data relationship is represented in the supabase database for the web application.
+'''
+
+
+# TODO clean this up -> use data models
+# TODO -> there should be no negative numbers in the data -> abs()
+
+
 def transform_gov_travel_expenditures_csv_to_supabase_csv_format() -> None:
     claim_writer = csv.writer(open('etl/data/travel_claims.csv', 'w'))
     event_writer = csv.writer(open('etl/data/travel_events.csv', 'w'))
@@ -24,13 +35,6 @@ def transform_gov_travel_expenditures_csv_to_supabase_csv_format() -> None:
             elif any(row[3:9]):
                 del row[9:16]
                 event_writer.writerow(row)
-
-
-def get_members() -> list[str]:
-    with open('members.csv', 'r') as csvfile:
-        csvreader = csv.reader(csvfile)
-        next(csvreader)
-        return [row[0] for row in csvreader]
 
 
 def create_members_csv() -> set[Any]:
