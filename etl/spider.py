@@ -1,6 +1,8 @@
 from typing import Iterator
 from urllib.parse import unquote
 import requests
+from requests import HTTPError, Response
+from requests.structures import CaseInsensitiveDict
 from bs4 import BeautifulSoup
 import warnings
 from concurrent.futures import ThreadPoolExecutor
@@ -10,37 +12,41 @@ from csv_loader import write_downloaded_csv_into_aggregate_csv
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 
-def get_summary_expenditures_html_pages() -> Iterator[str]:
+def get_html_of_commons_webpage(url_path: str) -> Response:
+    url = 'https://www.ourcommons.ca' + url_path
+    response = requests.get(url, verify=False)
+    response.raise_for_status()
+    return response
+
+
+def extract_csv_download_links_from_webpage(html: str) -> Iterator[str]:
+    soup = BeautifulSoup(html, 'html.parser')
+    for link in soup.find_all(attrs={'class': 'light-bold view-report-link'}):
+        yield link['href'] + '/csv'
+
+
+def get_csv_download_links_from_expenditure_report_pages() -> Iterator[str]:
     for quarter in range(1, 5):
         for year in range(2021, 2025):
-            url = f'https://www.ourcommons.ca/ProactiveDisclosure/en/members/{year}/{quarter}'
-            response = requests.get(url, verify=False)
-            response.raise_for_status()
-            if response.status_code == 200:
-                yield response.text
+            resp = get_html_of_commons_webpage(f'/ProactiveDisclosure/en/members/{year}/{quarter}')
+            yield from extract_csv_download_links_from_webpage(resp.text)
 
 
-def extract_csv_download_links(html_pages: Iterator[str]) -> Iterator[str]:
-    for html in html_pages:
-        soup = BeautifulSoup(html, 'html.parser')
-
-        for link in soup.find_all(attrs={'class': 'light-bold view-report-link'}):
-            yield link['href'] + '/csv'
+def extract_mp_name_from_csv_download_headers(headers: CaseInsensitiveDict[str]) -> str:
+    headers_partition = unquote(headers['Content-Disposition']).split('.csv')[-2].split('_')
+    last_name, first_name = headers_partition[-2], headers_partition[-1]
+    return f'{last_name}, {first_name}'
 
 
 def download_csv_file(csv_download_link: str) -> tuple[str, str] | None:
     try:
-        print(f'Downloading {csv_download_link}')
-        response = requests.get(f'https://www.ourcommons.ca{csv_download_link}', verify=False)
-        if response.status_code == 200:
-            headers_partition = unquote(response.headers['Content-Disposition']).split('.csv')[-2].split('_')
-            last_name, first_name = headers_partition[-2], headers_partition[-1]
-            return response.content.decode('utf-8'), f'{last_name}, {first_name}'
-
-        print(f'Could not download {csv_download_link}', response.status_code)
+        resp = get_html_of_commons_webpage(csv_download_link)
+        if resp.status_code == 200:
+            mp_name = extract_mp_name_from_csv_download_headers(resp.headers)
+            return resp.content.decode('utf-8'), mp_name
         return None
-    except Exception as e:
-        print(f"ERROR HERE: {e}")
+    except HTTPError as e:
+        print(f'ERROR DOWNLOADING CSV: {csv_download_link}', e)
         return None
 
 
@@ -55,6 +61,5 @@ def process_download_links(csv_download_links: Iterator[str]) -> None:
 
 
 if __name__ == '__main__':
-    html_pages = get_summary_expenditures_html_pages()
-    csv_download_links = extract_csv_download_links(html_pages)
+    csv_download_links = get_csv_download_links_from_expenditure_report_pages()
     process_download_links(csv_download_links)

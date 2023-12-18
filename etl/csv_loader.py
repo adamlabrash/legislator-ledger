@@ -1,17 +1,7 @@
-from enum import Enum
 import csv
-from enum import Enum
 from urllib.parse import unquote
 
-
-class ExpenditureCategory(Enum):
-    CONTRACTS = 'contract'
-    TRAVEL = 'travel'
-    HOSPITALITY = 'hospitality'
-
-    @property
-    def file_name(self) -> str:
-        return f'gov_{self.value}_expenditures.csv'
+from etl.models import ExpenditureCategory
 
 
 def determine_expenditure_category_of_csv_file(csv_title_row: str) -> ExpenditureCategory:
