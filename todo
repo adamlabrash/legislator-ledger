@@ -3,3 +3,4 @@ run carbon_calculator
 verify Findlay, Hon. Kerry-Lynne, vacants
 upload methodology, schema, analysis, FAQ to readme
 remove negative values from dataset, round decimals
+Handle claim 200678558 -> it's not in supabase because it has many reports
