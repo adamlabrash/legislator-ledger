@@ -1,28 +1,39 @@
 import csv
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Iterator
-from urllib.parse import unquote
 import scrapy
 from scrapy.http import Response
 from io import StringIO
-
-# TODO apply metadata to csv file -> track url and date of update
-# TODO get start urls from airflow -> only scrape new data
-# TODO download csv file from Members – Summary of Expenditures
-# TODO https://www.ourcommons.ca/PublicationSearch/en/?PubType=37 session transcripts etc
 
 
 class ExpendituresSpider(scrapy.Spider):
     name = "expenditures"
     allowed_domains = ["ourcommons.ca"]
 
-    def __init__(self, *args, **kwargs):
-        # self.start_urls = [kwargs['start_urls']]
+    def __init__(self, last_update: date):
+        '''
+        Quarter 1 = April 1 to June 30
+        Quarter 2 = July 1 to September 30
+        Quarter 3 = October 1 to December 31
+        Quarter 4 = January 1 to March 31
+        #TODO get mp ids, move below function to airflow
+        '''
+        self.start_urls = []
+        last_update_quarter = 4 if last_update.month < 4 else (last_update.month - 1) // 3
+        last_update_year = last_update.year
 
-        # TODO pass in IDs and dates from airflow
-        self.start_urls = [
-            'https://www.ourcommons.ca/ProactiveDisclosure/en/members/travel/2024/2/841d07d2-a1e0-4fd9-afb3-f05260d42001'
-        ]
+        current_quarter = 4 if date.today().month < 4 else (date.today().month - 1) // 3
+        current_year = date.today().year
+
+        while last_update_quarter != current_quarter and last_update_year != current_year:
+            self.start_urls.append(
+                f'https://www.ourcommons.ca/ProactiveDisclosure/en/members/{last_update_year}/{last_update_quarter}'
+            )
+            if last_update_quarter == 4:
+                last_update_quarter = 1
+                last_update_year += 1
+            else:
+                last_update_quarter += 1
 
     def parse(self, response: Response):
         member_data = (
@@ -31,36 +42,31 @@ class ExpendituresSpider(scrapy.Spider):
             .extract()
             .split(' - ')
         )
-        name, constituency, caucus = member_data[0], member_data[1], member_data[2]
-
-        url_parts = response.url.split('/')
-        meta_data = {
-            'download_url': response.url,
-            'extracted_at': datetime.now(),
-            'category': url_parts[-4],
-            'year': url_parts[-3],
-            'name': name,
-            'constituency': constituency,
-            'caucus': caucus,
-        }
-        yield response.follow(url=response.url + '/csv', callback=self.parse_csv, meta=meta_data)
+        yield response.follow(url=response.url + '/csv', callback=self.parse_csv, meta={'member_data': member_data})
 
     def parse_csv(self, response: Response) -> Iterator:
         csv_content = response.body.decode()
         csv_data = csv.reader(StringIO(csv_content), delimiter=',')
+        next(csv_data)  # skip title row
+        next(csv_data)  # skip header row
+
+        '''
+        # TODO use set, error handling
+        '''
+        claim_travel_events = []
+        travel_claim = next(csv_data)
 
         for row in csv_data:
-            row = [unquote(cell) for cell in row]
+            if row[0] == travel_claim[0]:
+                claim_travel_events.append(row)
+            else:
+                yield {
+                    'claim_row': travel_claim,
+                    'travel_event_rows': claim_travel_events,
+                    'download_url': response.url,
+                } | response.meta
 
-            # TODO do parsing here ****START HERE****
-            import pdb
-
-            pdb.set_trace()
-
-        import pdb
-
-        pdb.set_trace()
-        yield {}
+                travel_claim, claim_travel_events = row, []
 
 
 '''
