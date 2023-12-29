@@ -1,4 +1,5 @@
 from decimal import Decimal
+from urllib.parse import unquote
 from expenditures.enums import (
     Caucus,
     ExpenditureCategory,
@@ -8,7 +9,7 @@ from expenditures.enums import (
     HospitalityPurpose,
     TravelPurpose,
 )
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from datetime import date, datetime
 
 
@@ -19,8 +20,8 @@ class ContractClaim(BaseModel):
 
 
 class HouseAdminContractClaim(ContractClaim):
-    original_contract_value: Decimal = Field(decimal_places=2)
-    amended_contract_value: Decimal = Field(decimal_places=2)
+    original_contract_value: Decimal = Field(..., decimal_places=2)
+    amended_contract_value: Decimal = Field(..., decimal_places=2)
 
 
 ####### HOSPITALITY
@@ -40,9 +41,9 @@ class AdminHospitality(HospitalityClaim):
 ####### TRAVEL
 class TravelClaim(BaseModel):
     claim_id: str
-    transport_cost: Decimal = Field(decimal_places=2)
-    accommodation_cost: Decimal = Field(decimal_places=2)
-    meals_and_incidentals_cost: Decimal = Field(decimal_places=2)
+    transport_cost: Decimal = Field(..., decimal_places=2)
+    accommodation_cost: Decimal = Field(..., decimal_places=2)
+    meals_and_incidentals_cost: Decimal = Field(..., decimal_places=2)
 
     @field_validator('transport_cost', 'accommodation_cost', 'meals_and_incidentals_cost')
     def round_decimal_fields(cls, v: Decimal) -> Decimal:
@@ -59,26 +60,33 @@ class TravelEvent(BaseModel):
 
     @classmethod
     def from_csv_row(cls, row: list[str]) -> 'TravelEvent':
+        row = [unquote(cell).strip() for cell in row]
+
         return cls.model_validate(
             {
-                'traveller_name': row[1],
-                'traveller_type': row[2],
-                'purpose_of_travel': row[3],
-                'date': datetime.strptime(row[4], '%Y/%m/%d').date(),
-                'departure': row[5],
-                'destination': row[6],
+                'traveller_name': row[3],
+                'traveller_type': row[4],
+                'purpose_of_travel': row[5],
+                'date': datetime.strptime(row[6], '%Y/%m/%d').date(),
+                'departure': row[7],
+                'destination': row[8],
             }
         )
 
+    @field_validator('departure', 'destination')
+    def validate_title_case(cls, v: str) -> str:
+        return v.title()
+
 
 class MemberTravelClaim(TravelClaim):
-    reg_points_used: float = Field(decimal_places=1, multiple_of=0.5, ge=0)
-    special_points_used: float = Field(decimal_places=1, multiple_of=0.5, ge=0)
-    USA_points_used: float = Field(decimal_places=1, multiple_of=0.5, ge=0)
-    travel_events: list[TravelEvent]
+    reg_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5, ge=0)
+    special_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5, ge=0)
+    USA_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5, ge=0)
+    travel_events: list[TravelEvent] = []
 
     @classmethod
-    def from_csv_row(cls, row: list[str]) -> 'TravelClaim':
+    def from_csv_row(cls, row: list[str]) -> 'MemberTravelClaim':
+        row = [unquote(cell).strip() for cell in row]
         return cls.model_validate(
             {
                 'claim_id': row[0],
@@ -107,39 +115,35 @@ class AdminTravelClaim(TravelClaim):
 
 
 class CommitteeTravelClaim(TravelClaim):
-    other: Decimal = Field(decimal_places=2)
-    per_diems: Decimal = Field(decimal_places=2)
+    other: Decimal = Field(..., decimal_places=2)
+    per_diems: Decimal = Field(..., decimal_places=2)
 
 
 EXPENDITURE_CLAIM = ContractClaim | HospitalityClaim | MemberTravelClaim | HouseOfficerTravelClaim | AdminTravelClaim
 
 
 class ExpenditureItem(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, use_enum_values=True)
+
     category: ExpenditureCategory
     institution: Institution
-    caucus: Caucus
+    mp_caucus: Caucus
 
     download_url: str
+    quarter: int = Field(ge=1, le=4)
+    year: int
     extracted_at: datetime
 
     mp_id: str | None
-    mp_office: str
+    mp_name: str
     mp_constituency: str
 
-    # TODO review dates
-    start_date: date | None = Field(serialization_alias='date')  # TODO check this -> start_date, date, end_date
-    end_date: date | None = Field(serialization_alias='date')
-    quarter: int = Field(ge=1, le=4)
-    year: int
+    start_date: date
+    end_date: date
 
-    total_cost: Decimal = Field(decimal_places=2, gt=0)
+    total_cost: Decimal = Field(..., decimal_places=2, gt=0)
     claim: EXPENDITURE_CLAIM
 
-    @field_validator('total_cost')
-    def round_decimal_fields(cls, v: Decimal) -> Decimal:
-        return v.quantize(Decimal('1.00'))
-
-    # TODO -> drop events in claim if they don't match claim_id
     @model_validator(mode='before')
-    def validate_model():
-        pass
+    def strip_whitespaces(cls, v: dict) -> dict:
+        return {key: value.strip() if isinstance(value, str) else value for key, value in v.items()}

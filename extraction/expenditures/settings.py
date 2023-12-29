@@ -2,7 +2,7 @@ BOT_NAME = "expenditures_spider"
 
 SPIDER_MODULES = ["expenditures.spiders"]
 NEWSPIDER_MODULE = "expenditures.spiders"
-LOG_LEVEL = "INFO"
+LOG_LEVEL = "ERROR"
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 # USER_AGENT = "expenditures_spider (+http://www.yourdomain.com)"
@@ -51,11 +51,9 @@ LOG_LEVEL = "INFO"
 #    "scrapy.extensions.telnet.TelnetConsole": None,
 # }
 
-# Configure item pipelines
-# See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-# ITEM_PIPELINES = {
-#    "expenditures_spider.pipelines.ExpendituresSpiderPipeline": 300,
-# }
+ITEM_PIPELINES = {
+    "expenditures.pipelines.MemberExpenditureSpiderPipeline": 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html

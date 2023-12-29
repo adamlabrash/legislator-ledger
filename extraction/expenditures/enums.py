@@ -8,19 +8,13 @@ class Caucus(Enum):
     BLOC = 'Bloc Québécois'
     GREEN = 'Green Party'
     INDEPENDENT = 'Independent'
-    ADMINISTRATION = 'Administration'  # House Admin
+    ADMINISTRATION = 'Administration'
 
 
 class ExpenditureCategory(Enum):
     CONTRACTS = 'contract'
     TRAVEL = 'travel'
     HOSPITALITY = 'hospitality'
-
-    # # Committee studies
-    # WITNESS_EXPENSES = 'witness expenses'
-    # VIDEO_CONFERENCES = 'video conferences'
-    # WORKING_MEALS = 'working meals'
-    # OTHER = 'other'
 
 
 class Institution(Enum):
@@ -29,11 +23,6 @@ class Institution(Enum):
     HOUSE_OF_COMMONS_ADMIN = 'House of Commons Administration'
     PARLIAMENTARY_COMMITTEES = 'Parliamentary Committees'
     PARLIAMENTARY_DIPLOMACY = 'Parliamentary Diplomacy'
-
-
-class Role(Enum):
-    SPEAKER = 'Speaker'
-    MEMBER = 'Member'
 
 
 ###### Hospitality
@@ -48,7 +37,6 @@ class HospitalityEventType(Enum):
     HOSTING_A_STAFF_EVENT = 'Hosting a staff event'
 
 
-# TODO update for AdminHospitality
 class HospitalityPurpose(Enum):
     MEET_VISITORS_OF_MEMBER_OFFICE = 'To meet visitors of Member’s office'
     ATTEND_STAFF_EVENTS_INCLUDING_TRAINING = 'To attend staff events including training'
@@ -95,6 +83,7 @@ class TravelPurpose(Enum):
     SUPPORT_MEMBER_NATIONAL_CAUCUS_RESEARCH = 'To support the Member responsible of the National Caucus Research Office'
     ATTEND_AN_EVENT = 'To attend an event'
     ATTEND_BUSINESS_MEETING = 'To attend a business meeting'
+    TRAVEL_BETWEEN_CONSTITUENCY_AND_OTTAWA = 'To travel to/from constituency and Ottawa'
 
 
 class TravellerType(Enum):
