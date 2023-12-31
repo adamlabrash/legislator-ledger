@@ -17,6 +17,20 @@ from datetime import date, datetime
 class ContractClaim(BaseModel):
     supplier: str
     description: str
+    date: date
+    total_cost: Decimal = Field(..., decimal_places=2)
+
+    @classmethod
+    def from_csv_row(cls, row: list[str]) -> 'ContractClaim':
+        row = [unquote(cell).strip() for cell in row]
+        return cls.model_validate(
+            {
+                'supplier': row[0],
+                'description': row[1],
+                'date': datetime.strptime(row[2], '%Y/%m/%d').date(),
+                'total_cost': row[3],
+            }
+        )
 
 
 class HouseAdminContractClaim(ContractClaim):
@@ -27,11 +41,29 @@ class HouseAdminContractClaim(ContractClaim):
 ####### HOSPITALITY
 class HospitalityClaim(BaseModel):
     claim_id: str
+    date: date
     location: str
     num_attendees: int = Field(ge=0)
     purpose_of_hospitality: HospitalityPurpose
     event_type: HospitalityEventType
     supplier: str
+    total_cost: Decimal = Field(..., decimal_places=2)
+
+    @classmethod
+    def from_csv_row(cls, row: list[str]) -> 'HospitalityClaim':
+        row = [unquote(cell).strip() for cell in row]
+        return cls.model_validate(
+            {
+                'claim_id': row[5],
+                'date': datetime.strptime(row[0], '%Y/%m/%d').date(),
+                'location': row[1],
+                'num_attendees': row[2],
+                'purpose_of_hospitality': row[3],
+                'event_type': row[4],
+                'supplier': row[6],
+                'total_cost': row[7],
+            }
+        )
 
 
 class AdminHospitality(HospitalityClaim):
@@ -125,23 +157,22 @@ EXPENDITURE_CLAIM = ContractClaim | HospitalityClaim | MemberTravelClaim | House
 class ExpenditureItem(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, use_enum_values=True)
 
+    # url parts
     category: ExpenditureCategory
-    institution: Institution
-    mp_caucus: Caucus
-
-    download_url: str
-    quarter: int = Field(ge=1, le=4)
     year: int
+    quarter: int = Field(ge=1, le=4)
+    mp_id: str | None
+    download_url: str
+
+    csv_title: str
     extracted_at: datetime
 
-    mp_id: str | None
-    mp_name: str
-    mp_constituency: str
+    institution: Institution
 
-    start_date: date
-    end_date: date
+    caucus: Caucus
+    name: str
+    constituency: str
 
-    total_cost: Decimal = Field(..., decimal_places=2, gt=0)
     claim: EXPENDITURE_CLAIM
 
     @model_validator(mode='before')
