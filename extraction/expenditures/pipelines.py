@@ -10,12 +10,6 @@ import json
 
 
 class MemberExpenditureSpiderPipeline:
-    def open_spider(self, spider):
-        self.file = open("expenditures.json", "w", encoding='utf-8-sig')
-
-    def close_spider(self, spider):
-        self.file.close()
-
     def extract_url_parts(self, url: str) -> dict:
         url_parts = url.split('/')
         return {
@@ -72,15 +66,9 @@ class MemberExpenditureSpiderPipeline:
                 claims = [ContractClaim.from_csv_row(claim_row) for claim_row in csv_data]
             elif metadata['category'] == 'travel':
                 claims = self.extract_travel_claims_from_csv(csv_data)
-            else:
-                print("Unknown category: ", metadata['category'])
 
-            for claim in claims:
-                expenditure_item = ExpenditureItem.model_validate(metadata | {'claim': claim})
+            expenditure_items = [ExpenditureItem.model_validate(metadata | {'claim': claim}) for claim in claims]
 
-                line = json.dumps(expenditure_item.model_dump(mode='json', exclude_none=True), ensure_ascii=False)
-
-                self.file.write(line + '\n')
-            return item
+            return [expenditure.model_dump(mode='json', exclude_none=True) for expenditure in expenditure_items]
         except Exception as e:
             print(item, e)
