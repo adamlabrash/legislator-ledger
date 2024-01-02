@@ -52,6 +52,7 @@ class HospitalityClaim(BaseModel):
     @classmethod
     def from_csv_row(cls, row: list[str]) -> 'HospitalityClaim':
         row = [unquote(cell).strip() for cell in row]
+
         return cls.model_validate(
             {
                 'claim_id': row[5],
@@ -109,11 +110,17 @@ class TravelEvent(BaseModel):
     def validate_title_case(cls, v: str) -> str:
         return v.title()
 
+    @field_validator('purpose_of_travel', mode='before')
+    def validate_member_case(cls, v: str) -> str:
+        if v == 'To unite the family with the member':  # typo edgecase in csv
+            return 'To unite the family with the Member'
+        return v
+
 
 class MemberTravelClaim(TravelClaim):
-    reg_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5, ge=0)
-    special_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5, ge=0)
-    USA_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5, ge=0)
+    reg_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5)
+    special_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5)
+    USA_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5)
     travel_events: list[TravelEvent] = []
 
     @classmethod
@@ -133,6 +140,10 @@ class MemberTravelClaim(TravelClaim):
                 'total_cost': row[15],
             }
         )
+
+    @field_validator('USA_points_used', 'special_points_used', 'reg_points_used')
+    def round_decimal_fields(cls, v: Decimal) -> Decimal:
+        return v.quantize(Decimal('1.00'))
 
 
 class HouseOfficerTravelClaim(TravelClaim):

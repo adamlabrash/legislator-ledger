@@ -84,6 +84,7 @@ class TravelPurpose(Enum):
     ATTEND_AN_EVENT = 'To attend an event'
     ATTEND_BUSINESS_MEETING = 'To attend a business meeting'
     TRAVEL_BETWEEN_CONSTITUENCY_AND_OTTAWA = 'To travel to/from constituency and Ottawa'
+    ACCOMMODATION = 'Accommodation'
 
 
 class TravellerType(Enum):
