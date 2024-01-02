@@ -4,13 +4,14 @@ from io import StringIO
 from typing import Iterator
 from expenditures.enums import Institution
 from expenditures.items import ContractClaim, ExpenditureItem, HospitalityClaim, MemberTravelClaim, TravelEvent
+from urllib.parse import unquote
 
 import json
 
 
 class MemberExpenditureSpiderPipeline:
     def open_spider(self, spider):
-        self.file = open("items.json", "w")
+        self.file = open("expenditures.json", "w", encoding='utf-8-sig')
 
     def close_spider(self, spider):
         self.file.close()
@@ -25,52 +26,61 @@ class MemberExpenditureSpiderPipeline:
             'download_url': url,
         }
 
-    def extract_travel_claims_from_csv(self, csv_data: Iterator[list[str]]) -> Iterator[MemberTravelClaim]:
-        travel_claim = MemberTravelClaim.from_csv_row(next(csv_data))
+    def extract_travel_claims_from_csv(self, csv_data: Iterator[list[str]]) -> list[MemberTravelClaim]:
+        travel_events: list[tuple[str, TravelEvent]] = []
+        travel_claims: list[MemberTravelClaim] = []
         for row in csv_data:
-            if row[0] == travel_claim.claim_id:
+            try:
                 travel_event = TravelEvent.from_csv_row(row)
-                travel_claim.travel_events.append(travel_event)
-            else:
-                yield travel_claim
+                claim_id = row[0].strip()
+                travel_events.append((claim_id, travel_event))
+            except ValueError as e:
                 try:
-                    travel_claim = MemberTravelClaim.from_csv_row(row)  # TODO error handling *****START HERE ******
-                except Exception as e:
-                    import pdb
+                    travel_claim = MemberTravelClaim.from_csv_row(row)
+                    travel_claims.append(travel_claim)
+                except ValueError as e:  # invalid row
+                    print(row, e)
+                    continue
 
-                    pdb.set_trace()
+        for travel_claim in travel_claims:
+            for claim_id, travel_event in travel_events:
+                if travel_claim.claim_id == claim_id:
+                    travel_claim.travel_events.append(travel_event)
+                    travel_events.remove((claim_id, travel_event))
 
-    def process_item(self, item, spider):  # item is a csv file
-        csv_data = csv.reader(StringIO(item['csv'], newline='\r\n'))
+        return travel_claims
 
-        metadata = {
-            'csv_title': next(csv_data)[0],
-            'extracted_at': datetime.now(),
-            'institution': Institution.MEMBERS_OF_PARLIAMENT,
-            'caucus': item['caucus'],
-            'constituency': item['constituency'],
-            'name': item['name'],
-        } | self.extract_url_parts(item['download_url'])
+    def process_item(self, item, spider):  # item is a csv file + metadata
+        try:
+            csv_data = csv.reader(StringIO(item['csv'].decode('utf-8-sig'), newline='\r\n'))
 
-        next(csv_data)  # skip header row
+            metadata = {
+                'csv_title': unquote(next(csv_data)[0]),
+                'extracted_at': datetime.now(),
+                'institution': Institution.MEMBERS_OF_PARLIAMENT,
+                'caucus': item['caucus'],
+                'constituency': item['constituency'],
+                'name': item['name'],
+            } | self.extract_url_parts(item['download_url'])
 
-        claims = []
-        if metadata['category'] == 'hospitality':
-            claims = [HospitalityClaim.from_csv_row(claim_row) for claim_row in csv_data]
-        elif metadata['category'] == 'contract':
-            claims = [ContractClaim.from_csv_row(claim_row) for claim_row in csv_data]
-        elif metadata['category'] == 'travel':
-            claims = self.extract_travel_claims_from_csv(csv_data)
+            next(csv_data)  # skip header row
 
-        for claim in claims:
-            expenditure_item = ExpenditureItem.model_validate(metadata | {'claim': claim})
-            line = json.dumps(expenditure_item.model_dump(mode='json'))
-            self.file.write(line + '\n')
+            claims = []
+            if metadata['category'] == 'hospitality':
+                claims = [HospitalityClaim.from_csv_row(claim_row) for claim_row in csv_data]
+            elif metadata['category'] == 'contract':
+                claims = [ContractClaim.from_csv_row(claim_row) for claim_row in csv_data]
+            elif metadata['category'] == 'travel':
+                claims = self.extract_travel_claims_from_csv(csv_data)
+            else:
+                print("Unknown category: ", metadata['category'])
 
-        return item
+            for claim in claims:
+                expenditure_item = ExpenditureItem.model_validate(metadata | {'claim': claim})
 
-        # TODO error handling
-        # TODO convert list to set back to list
-        # TODO model dump enum names not values
+                line = json.dumps(expenditure_item.model_dump(mode='json', exclude_none=True), ensure_ascii=False)
 
-        # raise DropItem(f"Validation error(s) in {item}: {err}")
+                self.file.write(line + '\n')
+            return item
+        except Exception as e:
+            print(item, e)

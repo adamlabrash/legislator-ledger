@@ -6,6 +6,7 @@ __pycache__/
 # C extensions
 *.so
 
+.timetracker
 # Distribution / packaging
 .Python
 build/
