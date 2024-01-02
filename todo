@@ -3,13 +3,28 @@ run carbon_calculator
 verify Findlay, Hon. Kerry-Lynne, vacants
 upload methodology, schema, analysis, FAQ to readme
 remove negative values from dataset, round decimals
-Handle claim 200678558 -> it's not in supabase because it has many reports
-
-
+Handle claim 200678558 it's not in supabase because it has many reports
 Committee Travel Expenditures
-Workplace harassment dataset:
 example:
 https://www.ourcommons.ca/Content/Misc/2022-2023-PreventionReport-e.pdf
 
 #https://www.ourcommons.ca/PublicationSearch/en/?PubType=37 session transcripts etc
 
+pkill gunicorn
+
+https://www.ourcommons.ca/ProactiveDisclosure/en/house-administration/2023/4/ExpenditureCategory/csv
+https://www.ourcommons.ca/ProactiveDisclosure/en/house-officers/{year}/{quarter}/ExpenditureCategory/csv
+
+
+https://www.ourcommons.ca/ProactiveDisclosure/en/members/{year}/{quarter}/csv
+https://www.ourcommons.ca/ProactiveDisclosure/en/members/{expenditure_category}/{year}/{quarter}/{mp_id}/csv -> get mp_id
+
+https://www.ourcommons.ca/ProactiveDisclosure/en/house-administration/2023/4/csv
+https://www.ourcommons.ca/ProactiveDisclosure/en/house-officers/{year}/{quarter}/csv
+
+https://www.ourcommons.ca/Boie/en/reports-and-disclosure -> several things to download here
+
+Extraction: Done
+Load -> dump json into s3
+Transform -> parse json into relationships csv
+Upload csv into snowflake and supabase

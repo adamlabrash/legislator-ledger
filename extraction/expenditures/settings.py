@@ -1,14 +1,31 @@
+from dotenv import load_dotenv, find_dotenv
+import os
+
+load_dotenv(find_dotenv())
+
 BOT_NAME = "expenditures_spider"
 
 SPIDER_MODULES = ["expenditures.spiders"]
 NEWSPIDER_MODULE = "expenditures.spiders"
 LOG_LEVEL = "ERROR"
 
+AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+AWS_SECRET_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
+AWS_BUCKET_NAME = os.environ['AWS_BUCKET_NAME']
+
+FEEDS = {
+    f's3://{AWS_BUCKET_NAME}/%(name)s/%(year)s-%(quarter)s.json': {
+        'format': 'json',
+        'encoding': 'utf8',
+        'store_empty': False,
+    }
+}
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 # USER_AGENT = "expenditures_spider (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
-# ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = True
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 # CONCURRENT_REQUESTS = 32
@@ -79,4 +96,3 @@ AUTOTHROTTLE_TARGET_CONCURRENCY = 2.0
 # Set settings whose default value is deprecated to a future-proof value
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
-FEED_EXPORT_ENCODING = "utf-8"
