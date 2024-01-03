@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { VectorMap } from "@react-jvectormap/core";
-import { usAea } from "@react-jvectormap/unitedstates";
+import { caMill  } from "@react-jvectormap/canada"; // This import depends on the actual name of the Canada map in the library
 
 const MapOne = () => {
   return (
@@ -11,7 +11,7 @@ const MapOne = () => {
       </h4>
       <div id="mapOne" className="mapOne map-btn h-90">
         <VectorMap
-          map={usAea}
+          map={caMill} // Use the imported Canada map here
           backgroundColor="white"
           regionStyle={{
             initial: {
