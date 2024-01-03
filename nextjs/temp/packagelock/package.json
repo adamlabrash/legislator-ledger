@@ -20,7 +20,7 @@
     "eslint-config-next": "13.4.12",
     "jsvectormap": "^1.5.3",
     "next": "^13.5.6",
-    "postcss": "8.4.27",
+    "postcss": "8.4.31",
     "react": "18.2.0",
     "react-apexcharts": "^1.4.1",
     "react-dom": "18.2.0",
