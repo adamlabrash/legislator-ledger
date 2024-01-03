@@ -1,1 +1,0 @@
-This part of the project (web application and analysis) is still in progress.
