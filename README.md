@@ -7,8 +7,7 @@ Members of Parliment are required to report their travel, hospitality, and third
 
 The expenditure reports of individual members of parliment are organized by quarter and year, with each report available for download on 12000+ seperate webpages - this is prevents meaningful aggregation and analysis of information that should be easily available to the public.
 
-This spider aggregates over 12000 seperate expenditure reports into 3 csv files found in /expenditure_data, one for each expenditure category (Travel, Hospitality, & Contracts).
-The dates range from July 1, 2020 to June 30, 2023.
+This extraction system aggregates over 12000 seperate expenditure reports into a json file found in /expenditure_data. The dates range from July 1, 2020 to June 30, 2023.
 
 ---
 
