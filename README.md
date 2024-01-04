@@ -7,10 +7,16 @@ Members of Parliment are required to report their travel, hospitality, and third
 
 The expenditure reports of individual members of parliment are organized by quarter and year, with each report available for download on 12000+ seperate webpages - this is prevents meaningful aggregation and analysis of information that should be easily available to the public.
 
-This extraction system aggregates over 12000 seperate expenditure reports into a json file found in /expenditure_data. The dates range from July 1, 2020 to June 30, 2023.
+This extraction system aggregates 1,000,000+ expenditures, from 12,000+ seperate expenditure reports into a json file found in /expenditure_data. The dates range from July 1, 2020 to June 30, 2023.
 
 ---
 
-***Note that expenditure reports for Party leaders and House Officers are not in the initial csv datasets (You will not find Justin Trudeau for example). These expenditures are reported seperately and in a different format, and will added to this dataset in the future***
+***Note that expenditure reports for Party leaders and House Officers are not in the initial dataset. These expenditures are reported seperately and in a different format, and will added to this dataset in the future***
 
 ---
+
+TODO:
+-ELT & database diagrams
+-Json schema
+-nextjs frontend
+-expand dataset
