@@ -11,16 +11,17 @@ This extraction system aggregates 1,000,000+ expenditures, from 12,000+ seperate
 
 
 <h2 style="text-align: center;">System Architecture</h2>
-![Image](architecture_diagram.jpeg)
 
+<img loading="lazy" src="architecture_diagram.jpeg" />
 ---
-
 ***Note that expenditure reports for Party leaders and House Officers are not in the initial dataset. These expenditures are reported seperately and in a different format, and will added to this dataset in the future***
-
 ---
 
 TODO:
--ELT & database diagrams
+-Database uml diagram
+
 -Json schema
+
 -nextjs frontend
+
 -expand dataset
