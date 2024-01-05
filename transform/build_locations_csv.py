@@ -2,9 +2,6 @@ import csv
 from typing import Iterator, Set
 
 import json
-from dotenv import load_dotenv, find_dotenv
-import os
-
 from shared_models.items import ExpenditureItem, MemberTravelClaim
 from geopy.geocoders import Nominatim
 from geopy.location import Location
