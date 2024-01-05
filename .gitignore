@@ -132,6 +132,9 @@ env.bak/
 venv.bak/
 .env.local.example
 
+#Notebook
+*.ipynb
+
 # Spyder project settings
 .spyderproject
 .spyproject
