@@ -2,11 +2,9 @@ import csv
 from datetime import datetime
 from io import StringIO
 from typing import Iterator
-from expenditures.enums import Institution
-from expenditures.items import ContractClaim, ExpenditureItem, HospitalityClaim, MemberTravelClaim, TravelEvent
+from shared_models.enums import Institution
+from shared_models.items import ContractClaim, ExpenditureItem, HospitalityClaim, MemberTravelClaim, TravelEvent
 from urllib.parse import unquote
-
-import json
 
 
 class MemberExpenditureSpiderPipeline:
@@ -44,31 +42,28 @@ class MemberExpenditureSpiderPipeline:
 
         return travel_claims
 
-    def process_item(self, item, spider):  # item is a csv file + metadata
-        try:
-            csv_data = csv.reader(StringIO(item['csv'].decode('utf-8-sig'), newline='\r\n'))
+    def process_item(self, item, spider) -> list[dict]:  # item is a csv file + metadata
+        csv_data = csv.reader(StringIO(item['csv'].decode('utf-8-sig'), newline='\r\n'))
 
-            metadata = {
-                'csv_title': unquote(next(csv_data)[0]),
-                'extracted_at': datetime.now(),
-                'institution': Institution.MEMBERS_OF_PARLIAMENT,
-                'caucus': item['caucus'],
-                'constituency': item['constituency'],
-                'name': item['name'],
-            } | self.extract_url_parts(item['download_url'])
+        metadata = {
+            'csv_title': unquote(next(csv_data)[0]),
+            'extracted_at': datetime.now(),
+            'institution': Institution.MEMBERS_OF_PARLIAMENT,
+            'caucus': item['caucus'],
+            'constituency': item['constituency'],
+            'name': item['name'],
+        } | self.extract_url_parts(item['download_url'])
 
-            next(csv_data)  # skip header row
+        next(csv_data)  # skip header row
 
-            claims = []
-            if metadata['category'] == 'hospitality':
-                claims = [HospitalityClaim.from_csv_row(claim_row) for claim_row in csv_data]
-            elif metadata['category'] == 'contract':
-                claims = [ContractClaim.from_csv_row(claim_row) for claim_row in csv_data]
-            elif metadata['category'] == 'travel':
-                claims = self.extract_travel_claims_from_csv(csv_data)
+        claims = []
+        if metadata['category'] == 'hospitality':
+            claims = [HospitalityClaim.from_csv_row(claim_row) for claim_row in csv_data]
+        elif metadata['category'] == 'contract':
+            claims = [ContractClaim.from_csv_row(claim_row) for claim_row in csv_data]
+        elif metadata['category'] == 'travel':
+            claims = self.extract_travel_claims_from_csv(csv_data)
 
-            expenditure_items = [ExpenditureItem.model_validate(metadata | {'claim': claim}) for claim in claims]
+        expenditure_items = [ExpenditureItem.model_validate(metadata | {'claim': claim}) for claim in claims]
 
-            return [expenditure.model_dump(mode='json', exclude_none=True) for expenditure in expenditure_items]
-        except Exception as e:
-            print(item, e)
+        return [expenditure.model_dump(mode='json', exclude_none=True) for expenditure in expenditure_items]

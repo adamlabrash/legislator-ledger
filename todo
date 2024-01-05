@@ -24,7 +24,10 @@ https://www.ourcommons.ca/ProactiveDisclosure/en/house-officers/{year}/{quarter}
 
 https://www.ourcommons.ca/Boie/en/reports-and-disclosure -> several things to download here
 
-Extraction: Done
-Load -> dump json into s3
 Transform -> parse json into relationships csv
 Upload csv into snowflake and supabase
+
+expenditures.json -> add [,]
+
+T0243166,2022/12/12,2022/12/16,"Minhas, Mehak",Employee,To attend training,2022/12/15,Ottawa,Brampton,,,,,,,,"Sahota, Ruby"
+T0243165,2022/12/14,2022/12/15,,,,,,,509.1400,387.1900,0.0000,0,0.1000,0,896.33,"Sahota, Ruby"
