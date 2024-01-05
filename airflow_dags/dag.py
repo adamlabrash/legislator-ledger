@@ -23,16 +23,16 @@ def expenditure_dag():
         scrapy_command = f"scrapy crawl expenditures -a execution_date={context['ds']}"
 
         # runs scrape and saves to s3 bucket
-        scrapy_task = BashOperator(
+        scrapy_to_aws_s3 = BashOperator(
             task_id='expenditure_scrape',
             bash_command=scrapy_command,
             dag=dag,
         )
 
-        s3_to_travel_csv = BashOperator(
+        s3_to_local_json = BashOperator(
             task_id='expenditure_transform',
-            bash_command='python3 /transform/s3_to_csv.py',
-            description='Structures the raw travel json data into a csv files with data relationships',
+            bash_command='python3 /transform/get_expenditures_json_s3.py',
+            description='Gets the unstructured expenditures.json from s3',
             dag=dag,
         )
 
@@ -43,17 +43,18 @@ def expenditure_dag():
             dag=dag,
         )
 
+        travel_csvs_from_json = BashOperator(
+            task_id='expenditure_transform',
+            bash_command='python3 /transform/s3_to_csv.py',
+            description='build travel_events and travel_claims csv files',
+            dag=dag,
+        )
+
         pyspark_carbon_task = BashOperator(
             task_id='expenditure_transform',
             bash_command='python3 /transform/carbon_analysis.py',
             description='Runs carbon emissions analysis on the travel_events.csv and location.csv data',
             dag=dag,
         )
-
-        # TODO transform data and insert into supabase & snowflake
-        # TODO alert system
-        # TODO second round of validation after transformations
-        # TODO load data into supabase
-        # TODO integrate spark/kubernetes
 
     run_task()

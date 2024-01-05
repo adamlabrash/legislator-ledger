@@ -31,3 +31,5 @@ expenditures.json -> add [,]
 
 T0243166,2022/12/12,2022/12/16,"Minhas, Mehak",Employee,To attend training,2022/12/15,Ottawa,Brampton,,,,,,,,"Sahota, Ruby"
 T0243165,2022/12/14,2022/12/15,,,,,,,509.1400,387.1900,0.0000,0,0.1000,0,896.33,"Sahota, Ruby"
+# load data automatically into supabase
+# integrate spark/kubernetes
