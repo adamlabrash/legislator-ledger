@@ -1,6 +1,7 @@
 from decimal import Decimal
+from typing import Set
 from urllib.parse import unquote
-from expenditures.enums import (
+from shared_models.enums import (
     Caucus,
     ExpenditureCategory,
     HospitalityEventType,
@@ -23,7 +24,7 @@ class ContractClaim(BaseModel):
     @classmethod
     def from_csv_row(cls, row: list[str]) -> 'ContractClaim':
         row = [unquote(cell).strip() for cell in row]
-        return cls.model_validate(
+        return ContractClaim.model_validate(
             {
                 'supplier': row[0],
                 'description': row[1],
@@ -53,7 +54,7 @@ class HospitalityClaim(BaseModel):
     def from_csv_row(cls, row: list[str]) -> 'HospitalityClaim':
         row = [unquote(cell).strip() for cell in row]
 
-        return cls.model_validate(
+        return HospitalityClaim.model_validate(
             {
                 'claim_id': row[5],
                 'date': datetime.strptime(row[0], '%Y/%m/%d').date(),
@@ -79,7 +80,7 @@ class TravelClaim(BaseModel):
     meals_and_incidentals_cost: Decimal = Field(..., decimal_places=2)
 
     @field_validator('transport_cost', 'accommodation_cost', 'meals_and_incidentals_cost')
-    def round_decimal_fields(cls, v: Decimal) -> Decimal:
+    def round_decimals(cls, v: Decimal) -> Decimal:
         return v.quantize(Decimal('1.00'))
 
 
@@ -95,7 +96,7 @@ class TravelEvent(BaseModel):
     def from_csv_row(cls, row: list[str]) -> 'TravelEvent':
         row = [unquote(cell).strip() for cell in row]
 
-        return cls.model_validate(
+        return TravelEvent.model_validate(
             {
                 'traveller_name': row[3],
                 'traveller_type': row[4],
@@ -114,8 +115,7 @@ class TravelEvent(BaseModel):
     def validate_member_case(cls, v: str) -> str:
         if v == 'To unite the family with the member':  # typo edgecase in csv
             return 'To unite the family with the Member'
-        return v
-
+        return v    
 
 class MemberTravelClaim(TravelClaim):
     reg_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5)
@@ -126,7 +126,7 @@ class MemberTravelClaim(TravelClaim):
     @classmethod
     def from_csv_row(cls, row: list[str]) -> 'MemberTravelClaim':
         row = [unquote(cell).strip() for cell in row]
-        return cls.model_validate(
+        return MemberTravelClaim.model_validate(
             {
                 'claim_id': row[0],
                 'from_date': datetime.strptime(row[2], '%Y/%m/%d').date() if row[1] else None,
@@ -143,7 +143,18 @@ class MemberTravelClaim(TravelClaim):
 
     @field_validator('USA_points_used', 'special_points_used', 'reg_points_used')
     def round_decimal_fields(cls, v: Decimal) -> Decimal:
-        return v.quantize(Decimal('1.00'))
+        if v == 0.1:  # rounding error in report
+            v = Decimal(1)
+
+        return v.quantize(Decimal('1.0'))
+
+    @property
+    def locations_traveled(self) -> Set[str]:
+        locations = set()
+        for travel_event in self.travel_events:
+            locations.add(travel_event.departure.title())
+            locations.add(travel_event.destination.title())
+        return locations
 
 
 class HouseOfficerTravelClaim(TravelClaim):
@@ -165,8 +176,8 @@ class CommitteeTravelClaim(TravelClaim):
 EXPENDITURE_CLAIM = ContractClaim | HospitalityClaim | MemberTravelClaim | HouseOfficerTravelClaim | AdminTravelClaim
 
 
-class ExpenditureItem(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, use_enum_values=True)
+class ExpenditureItem(BaseModel, revalidate_instances='always'):
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     # url parts
     category: ExpenditureCategory
