@@ -13,6 +13,7 @@ AWS_BUCKET_NAME = os.environ['AWS_BUCKET_NAME']
 
 
 # TODO lru cache/check if it already exists before downloading from s3
+# TODO append to universal expenditures.json
 def get_expenditures_json_s3() -> Any:
     client = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     client.download_file(AWS_BUCKET_NAME, 'expenditures.json', 'transform/expenditures.json')

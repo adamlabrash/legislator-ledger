@@ -13,7 +13,7 @@ class ExpendituresSpider(scrapy.Spider):
         self.quarter = 4 if month < 4 else (month - 1) // 3
         self.start_urls = [f'https://www.ourcommons.ca/ProactiveDisclosure/en/members/{self.year}/{self.quarter}']
 
-    # def __init__(self):
+    # def __init__(self): # To run all at once
     #     self.start_urls = []
     #     for year in range(2021, 2025):
     #         for quarter in range(1, 5):
