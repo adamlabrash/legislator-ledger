@@ -2,7 +2,7 @@
 
 from math import asin, cos, radians, sin, sqrt
 
-from carbon import Carbon
+from emissions_analysis.carbon_calculator.carbon import Carbon
 
 
 class CarbonFlight(Carbon):

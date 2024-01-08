@@ -109,13 +109,16 @@ class TravelEvent(BaseModel):
 
     @field_validator('departure', 'destination')
     def validate_title_case(cls, v: str) -> str:
-        return v.title()
+        if v.isupper():
+            return v.title()
+        return v
 
     @field_validator('purpose_of_travel', mode='before')
     def validate_member_case(cls, v: str) -> str:
         if v == 'To unite the family with the member':  # typo edgecase in csv
             return 'To unite the family with the Member'
-        return v    
+        return v
+
 
 class MemberTravelClaim(TravelClaim):
     reg_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5)
@@ -147,14 +150,6 @@ class MemberTravelClaim(TravelClaim):
             v = Decimal(1)
 
         return v.quantize(Decimal('1.0'))
-
-    @property
-    def locations_traveled(self) -> Set[str]:
-        locations = set()
-        for travel_event in self.travel_events:
-            locations.add(travel_event.departure.title())
-            locations.add(travel_event.destination.title())
-        return locations
 
 
 class HouseOfficerTravelClaim(TravelClaim):
