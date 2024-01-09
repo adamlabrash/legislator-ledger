@@ -30,3 +30,5 @@ TODO:
 -nextjs frontend
 
 -expand dataset
+
+-finish flights.json dataset

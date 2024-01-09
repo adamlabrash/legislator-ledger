@@ -1,7 +1,19 @@
+Use Canadian airplane data
+fix .title() -> St. John'S
+add conflict of interest dataset
+    -> add sponsored flights to flights dataset
+
+add committees dataset
+
+business class vs economy class
+
+cross reference conflict of interest disclosures / stock ownership with 3rd party contract & hospitality expenditures
+
 verify Findlay, Hon. Kerry-Lynne, vacants
 upload methodology, schema, analysis, FAQ to readme
 remove negative values from dataset
 Handle claim 200678558 it's not in supabase because it has many reports
+
 Committee Travel Expenditures
 example:
 https://www.ourcommons.ca/Content/Misc/2022-2023-PreventionReport-e.pdf
@@ -13,17 +25,7 @@ pkill gunicorn
 https://www.ourcommons.ca/ProactiveDisclosure/en/house-administration/2023/4/ExpenditureCategory/csv
 https://www.ourcommons.ca/ProactiveDisclosure/en/house-officers/{year}/{quarter}/ExpenditureCategory/csv
 
-
-https://www.ourcommons.ca/ProactiveDisclosure/en/members/{year}/{quarter}/csv
-https://www.ourcommons.ca/ProactiveDisclosure/en/members/{expenditure_category}/{year}/{quarter}/{mp_id}/csv -> get mp_id
-
-https://www.ourcommons.ca/ProactiveDisclosure/en/house-administration/2023/4/csv
-https://www.ourcommons.ca/ProactiveDisclosure/en/house-officers/{year}/{quarter}/csv
-
 https://www.ourcommons.ca/Boie/en/reports-and-disclosure -> several things to download here
-
-Transform -> parse json into relationships csv
-Upload csv into snowflake and supabase
 
 expenditures.json -> add [,]
 
@@ -31,6 +33,4 @@ T0243166,2022/12/12,2022/12/16,"Minhas, Mehak",Employee,To attend training,2022/
 T0243165,2022/12/14,2022/12/15,,,,,,,509.1400,387.1900,0.0000,0,0.1000,0,896.33,"Sahota, Ruby"
 
 # load data automatically into supabase
-# integrate spark/kubernetes
 # update typing
-# round decimals

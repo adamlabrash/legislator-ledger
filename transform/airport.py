@@ -24,7 +24,7 @@ class Airport(BaseModel):
 @lru_cache(maxsize=1)
 def load_airport_data_from_json_file() -> list[Airport]:
     airports = []
-    with open('transform/emissions_analysis/carbon_calculator/sources/airport.json') as file:
+    with open('transform/emissions_analysis/carbon_calculator/sources/airports.json') as file:
         data = json.load(file)
         for airport in data.values():
             if airport['icao_region_code'] != 'NARNAS':
