@@ -2,8 +2,14 @@
 import React, { useState, useEffect } from "react";
 import { VectorMap } from "@react-jvectormap/core";
 import { caMill  } from "@react-jvectormap/canada"; // This import depends on the actual name of the Canada map in the library
+import Markers from "../../services/fetchData";
+import {convertToMarkers} from "../../services/fetchData";
 
+const markersArray: Markers[] = convertToMarkers();
 const MapOne= () => {
+
+  const [marks_loc, setState] = useState<Markers[]>(markersArray);
+
   return (
     <div className="col-span-12 rounded-sm border border-stroke bg-white py-6 px-7.5 shadow-default dark:border-strokedark dark:bg-boxdark xl:col-span-7">
       <h4 className="mb-2 text-xl font-semibold text-black dark:text-white">
@@ -12,6 +18,7 @@ const MapOne= () => {
       <div id="mapOne" className="mapOne map-btn h-90">
         <VectorMap
           map={caMill} // Use the imported Canada map here
+          markers={marks_loc}
           backgroundColor="white"
           regionStyle={{
             initial: {

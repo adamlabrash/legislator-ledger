@@ -1,6 +1,11 @@
 import { supabase } from './supabaseClient';
 
-export default interface Location {
+export default interface Markers{
+  latLng:[number,number];
+  name:string;
+}
+
+interface Location {
   location: string;
   nearest_airport: string;
   latitude: number;
@@ -8,19 +13,7 @@ export default interface Location {
   full_address: string;
 }
 
-interface TravelEvent {
-  traveller_name: string;
-  traveller_type: string;
-  purpose_of_travel: string;
-  id: string;
-  claim_id: string;
-  date: string;
-  mp_office: string;
-  departure: string;
-  destination: string;
-}
-
-export default interface TravelClaim {
+interface TravelData {
   claim_id: string;
   from_date: string;
   end_date: string;
@@ -32,115 +25,106 @@ export default interface TravelClaim {
   special_points_used: number;
   USA_points_used: number;
   mp_office: string;
-  travelEvent: TravelEvent;
+  // Include all other fields from the TravelClaims and TravelEvents tables
+  // that are selected in the travel_data view.
+  // Add fields for TravelEvents as well.
+  traveller_name: string;
+  traveller_type: string;
+  purpose_of_travel: string;
+  event_id: string; // assuming you have renamed the id from TravelEvents to event_id in the view
+  event_date: string;
+  departure: string;
+  destination: string;
+  // Add any additional fields from the view here
+
+  departure_latitude: number | null; // Use number | null if the data can be null
+  departure_longitude: number | null;
+  destination_latitude: number | null;
+  destination_longitude: number | null;
 }
 
-// Define the locationsArray in a scope accessible by getCoords
+
+export default interface TotalTravelCost{
+  mp_office: string;
+  total_cost: number;
+}
+
+
+export const fetchTravelDataFromView = async (column: string, id:string): Promise<TravelData[]> => {
+  let travelDataArray: TravelData[] = [];
+  const chunkSize = 100;  // Define how many records to fetch per request
+  let offset = 0;         // Start at the beginning of the view
+  let hasMore = true;     // Flag to determine if there are more records to fetch
+
+  try {
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('travel_data_with_coords') // Specify the view name correctly
+        .select('*')
+        .eq(column, id)         // Select all columns from the view
+        .range(offset, offset + chunkSize - 1); // Get a range of records
+
+      if (error) {
+        throw error;
+      }
+
+      // If data is fetched, add it to the travelDataArray
+      if (data && data.length > 0) {
+        travelDataArray = [...travelDataArray, ...data];
+        offset += data.length; // Increment the offset
+        hasMore = data.length === chunkSize; // Check if there are more records to fetch
+      } else {
+        hasMore = false; // No more records to fetch
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching travel data from the view:', error);
+  }
+
+  return travelDataArray;
+};
+
 let locationsArray: Location[] = [];
 
 export const fetchLocations = async (): Promise<Location[]> => {
-  const { data, error } = await supabase
-    .from('Locations')
-    .select('location, nearest_airport, latitude, longitude, full_address');
+  let index = 0; // Start at the beginning of the dataset
+  const chunkSize = 100; // Define the size of each chunk
+  let isLastChunk = false;
 
-  if (error) {
-    console.error('Error fetching locations:', error);
-    return [];
+  while (!isLastChunk) {
+    const { data, error } = await supabase
+      .from('Locations')
+      .select('location, nearest_airport, latitude, longitude, full_address')
+      .range(index, index + chunkSize - 1); // Get a range of records
+
+    if (error) {
+      console.error('Error fetching locations:', error);
+      break;
+    }
+
+    // Add the data to the locationsArray
+    locationsArray = locationsArray.concat(data as Location[]);
+
+    // Check if the last chunk has been reached
+    if (!data || data.length < chunkSize) {
+      isLastChunk = true; // This was the last chunk
+    } else {
+      index += chunkSize; // Move to the next chunk
+    }
   }
 
-  // Store the fetched data in locationsArray
-  locationsArray = data as Location[];
   return locationsArray;
 };
 
-// Call fetchLocations to fill locationsArray with data from Supabase
-fetchLocations().then(fetchedLocations => {
-  // Now locationsArray is filled and can be used by getCoords
-});
+// fetchLocations()
+//   .then(locations => console.log("Done fetching locations"))
+//   .catch(error => console.error(error));
 
-export function getCoords(location: string): [number, number] | undefined {
-  try {
-    const filteredLocations = locationsArray.filter(loc => loc.location === location);
-    if (filteredLocations.length > 0) {
-      const { latitude, longitude } = filteredLocations[0];
-      console.log('Location found:', location, latitude, longitude)
-      return [latitude, longitude];
-    } else {
-      throw new Error('Location not found');
-    }
-  } catch (error) {
-    console.log('An error occurred:', error);
-    return undefined;
-  }
-}
-
-export const fetchTravelData = async (): Promise<TravelClaim[]> => {
-  let travelClaims: TravelClaim[] = [];
-
-  try {
-    // Fetch travel claims
-    let { data: claimsData, error: claimsError } = await supabase
-      .from('TravelClaims')
-      .select('*');
-
-    if (claimsError) {
-      throw claimsError;
-    }
-
-    // Fetch travel events
-    let { data: eventsData, error: eventsError } = await supabase
-      .from('TravelEvents')
-      .select('*');
-
-    if (eventsError) {
-      throw eventsError;
-    }
-
-    // Assuming that both tables have been fetched successfully,
-    // merge the data based on claim_id
-    if (claimsData && eventsData) {
-      travelClaims = claimsData.map((claim) => {
-        // Find the corresponding event for each claim
-        const event = eventsData.find((e) => e.claim_id === claim.claim_id);
-        return {
-          ...claim,
-          travelEvent: event || {} // If no event is found, provide an empty object
-        };
-      });
-    }
-  } catch (error) {
-    console.error('Error fetching travel data:', error);
-  }
-
-  return travelClaims;
+export const convertToMarkers = (): Markers[] => {
+  return locationsArray.map((location): Markers => {
+    return {
+      latLng: [location.latitude, location.longitude],
+      name: location.location // Assuming you want to use the 'location' property as the marker's name
+    };
+  });
 };
-
-
-export const fetchData = async (table: string, columns: string[]) => {
-  // Fetch data from the first table
-  const { data: tableData, error: tableError } = await supabase
-    .from(table)
-    .select(columns.join(', '));
-
-  if (tableError) {
-    throw tableError;
-  }
-
-  // Fetch data from TravelEvents
-  const { data: travelEventsData, error: travelEventsError } = await supabase
-    .from('TravelEvents')
-    .select('*'); // You may want to specify the columns you need
-
-  if (travelEventsError) {
-    throw travelEventsError;
-  }
-
-  // Join the data based on 'claim_id'
-  const joinedData = tableData.map(t => ({
-    ...t,
-    travelEvent: travelEventsData.find(te => te.claim_id === t.claim_id)
-  }));
-
-  return joinedData;
-};
-
