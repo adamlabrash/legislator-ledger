@@ -7,6 +7,8 @@ class ExpendituresSpider(scrapy.Spider):
     name = "expenditures"
     allowed_domains = ["ourcommons.ca"]
 
+    custom_settings = {'ITEM_PIPELINES': {'expenditures.pipelines.MemberExpenditureSpiderPipeline': 400}}
+
     def __init__(self, execution_date: str):  # execution_date ex -> '2021-03'
         self.year = execution_date.split('-')[0]
         month = int(execution_date.split('-')[1])
