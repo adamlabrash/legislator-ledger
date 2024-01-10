@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Set
 from urllib.parse import unquote
-from shared_models.enums import (
+from extraction.expenditures.enums import (
     Caucus,
     ExpenditureCategory,
     HospitalityEventType,
