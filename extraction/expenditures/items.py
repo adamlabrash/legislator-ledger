@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Set
+from typing import Iterator, Set
 from urllib.parse import unquote
 from extraction.expenditures.enums import (
     Caucus,
@@ -150,7 +150,6 @@ class MemberTravelClaim(TravelClaim):
             v = Decimal(1)
 
         return v.quantize(Decimal('1.0'))
-
 
 class HouseOfficerTravelClaim(TravelClaim):
     traveller_type: TravellerType
