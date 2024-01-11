@@ -8,9 +8,6 @@ class ConflictsOfInterestPipeline:
     def extract_url_parts(self, url: str) -> dict:
         url_parts = url.split('/')
         return {
-            'category': url_parts[-5],
-            'year': int(url_parts[-4]) - 1,  # url year is off by one
-            'quarter': url_parts[-3],
             'mp_id': url_parts[-2],
             'download_url': url,
         }
