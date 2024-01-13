@@ -1,6 +1,7 @@
 import json
 from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame
+from transform.items import Location
 from transform.spark_udf import (
     calc_carbon_emissions,
     calc_distance_between_coordinates,
@@ -11,10 +12,10 @@ from transform.spark_udf import (
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 from pyspark.sql.functions import col
+import csv
+from extraction.expenditures.items import ExpenditureItem, MemberTravelClaim
 
 spark = SparkSession.builder.getOrCreate()
-
-from extraction.expenditures.items import ExpenditureItem, MemberTravelClaim
 
 
 def initialize_flights_dataframe() -> DataFrame:
@@ -22,20 +23,15 @@ def initialize_flights_dataframe() -> DataFrame:
     Loads, flattens and validates data from raw expenditures json file
     '''
 
-    with open('transform/result.json', encoding='utf-8-sig') as f:
+    with open('test_expenditures.json', encoding='utf-8-sig') as f:
         expenditure_data = json.load(f)
 
     travel_expenditures: list[dict] = []
     for expenditure in expenditure_data:
-        # if expenditure['category'] == 'travel':
-        #     for event in expenditure['claim']['travel_events']:
-        #         travel_expenditures.append(expenditure | expenditure['claim'] | event)
-
         expenditure = ExpenditureItem.model_validate(expenditure)
         if isinstance(expenditure.claim, MemberTravelClaim):
-            # TODO start here -> make schema/struct or validate -> strings to ints etc
-            for travel_event_data in expenditure.claim.as_flattened_dicts():
-                flattened_data = travel_event_data | expenditure.model_dump()
+            for travel_event_data in expenditure.claim.as_dicts():
+                flattened_data = travel_event_data | expenditure.as_dict()
                 travel_expenditures.append(flattened_data)
 
     flights_df = spark.createDataFrame(data=travel_expenditures)
@@ -51,7 +47,14 @@ def initialize_flights_dataframe() -> DataFrame:
 
 
 def initialize_locations_dataframe() -> DataFrame:
-    locations_df = spark.read.csv('transform/locations.csv', header=True)
+    locations = []
+    reader = csv.reader(open('transform/data/locations.csv', 'r'))
+    next(reader)  # skip header
+    for row in reader:
+        location = Location.from_csv_row(row)
+        locations.append(location.model_dump())
+
+    locations_df = spark.createDataFrame(data=locations)
 
     # add normalized location column
     locations_df = locations_df.withColumn('location_normalized', normalize_location_str(locations_df.location))
@@ -77,14 +80,28 @@ def initialize_airport_dataframe() -> DataFrame:
 
 
 def filter_non_flight_travel_events(flights_df: DataFrame) -> DataFrame:
-    flights_df.filter((flights_df.departure != '') | (flights_df.destination != ''))  # no locations reported
-    flights_df.filter(flights_df.departure != flights_df.destination)  # locations are the same -> not a flight
-
-    flight_points_were_used = (
-        (flights_df.reg_points_used > 0) | (flights_df.special_points_used > 0) | (flights_df.USA_points_used > 0)
+    flights_df = flights_df.withColumn(
+        'total_travel_events_in_claim', F.count('claim_id').over(Window.partitionBy('claim_id'))
     )
 
-    flights_df.filter(flight_points_were_used)
+    flights_df = flights_df.withColumn(
+        'total_points_used', flights_df.reg_points_used + flights_df.special_points_used + flights_df.USA_points_used
+    )
+
+    # TODO optimize this
+    is_flight_pattern = (flights_df.distance_travelled > 100) & (
+        flights_df.transport_cost / flights_df.total_travel_events_in_claim > 200
+    )
+
+    # keep events where travel points were used or distance travelled was greater than 100km
+    flights_df = flights_df.filter((flights_df.total_points_used > 0) | is_flight_pattern)
+
+    # TODO finish this
+    # events with more travel events than points used
+    # error_df = flights_df.filter(flights_df.total_travel_events_in_claim != (flights_df.total_points_used*2))
+
+    flights_df.filter((flights_df.departure != '') | (flights_df.destination != ''))  # no locations reported
+    flights_df.filter(flights_df.departure != flights_df.destination)  # locations are the same -> not a flight
 
     return flights_df
 
@@ -180,49 +197,36 @@ def map_locations_to_flights(locations_df: DataFrame, flights_df: DataFrame) -> 
 
 if __name__ == '__main__':
     flights_df = initialize_flights_dataframe()
-    flights_df = filter_non_flight_travel_events(flights_df)
-
     locations_df = initialize_locations_dataframe()
-    missing_locations_df = get_missing_locations(flights_df, locations_df)
     airport_df = initialize_airport_dataframe()
-    new_locations_df = map_nearest_airport_to_missing_locations(missing_locations_df, airport_df)
 
-    locations_df = locations_df.union(new_locations_df).distinct()
+    flights_df = filter_non_flight_travel_events(flights_df)
+    # missing_locations_df = get_missing_locations(flights_df, locations_df)
+    # new_locations_df = map_nearest_airport_to_missing_locations(missing_locations_df, airport_df)
+
+    # locations_df = locations_df.union(new_locations_df).distinct()
     flights_df = map_locations_to_flights(locations_df, flights_df)
     flights_df = apply_carbon_calculations_to_flight_data(flights_df)
 
-    flights_df.write.json('transform/flights.json', mode='overwrite')
+    # TODO build relationships, validate data
+    flights_df.write.format('json').mode('append').save('flights.json')
+    import pdb
 
-    locations_df.write.csv('transform/locations.csv', mode='overwrite', header=True)
+    pdb.set_trace()
 
+    locations_df.write.csv('transform/data/locations_new.csv', mode='overwrite', header=True)
 
-# query highest carbon emitters in 2022
-# flights_df = flights_df.withColumn('year', year(flights_df.date))
-# flights_df = flights_df.filter(flights_df.year == 2022)
-
-# flights_df = flights_df.withColumn('est_carbon_emissions', flights_df['est_carbon_emissions'].cast(IntegerType()))
-
-# result = (
-#     flights_df.groupBy('name')
-#     .agg(sum(col('est_carbon_emissions')).alias('total_carbon_emissions'))
-#     .orderBy(desc('total_carbon_emissions'))
-#     .limit(10)
-#     .collect()
-# )
-
-
-import pdb
-
-pdb.set_trace()
-
-# flights_df.show(n=1)
 
 '''
 BUG fix .title() in expenditures dataset Mcmurray => McMurray
+BUG missing travel events -> example: https://www.ourcommons.ca/ProactiveDisclosure/en/members/travel/2021/2/3283699b-5c58-486f-a315-a3f5e175d175
+
 TODO validate values before dumping into dataset
 TODO dump values into json dataset & supabase csv files
 
-TODO look at other travel events in claim, determine if flight was used
+# IMPROVE flight identification algorithm
+
+TODO look at other travel events in claim, determine which were flights
 # is_flight_pattern = (travels_df.distance_travelled > 50) & (travels_df.transport_cost > 200)
 # price & distance, min distance of 50km, major airports (?)
 '''
