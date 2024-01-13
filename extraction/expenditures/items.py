@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Iterator, Set
+from typing import Any, Iterator
 from urllib.parse import unquote
 from extraction.expenditures.enums import (
     Caucus,
@@ -119,6 +119,12 @@ class TravelEvent(BaseModel):
             return 'To unite the family with the Member'
         return v
 
+    def as_dict(self) -> dict[str, Any]:
+        return self.model_dump() | {
+            'traveller_type': self.traveller_type.value,
+            'purpose_of_travel': self.purpose_of_travel.value,
+        }
+
 
 class MemberTravelClaim(TravelClaim):
     reg_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5)
@@ -151,6 +157,11 @@ class MemberTravelClaim(TravelClaim):
 
         return v.quantize(Decimal('1.0'))
 
+    def as_dicts(self) -> Iterator[dict]:
+        for event in self.travel_events:
+            yield self.model_dump(exclude={'travel_events'}) | event.as_dict()
+
+
 class HouseOfficerTravelClaim(TravelClaim):
     traveller_type: TravellerType
     purpose_of_travel: TravelPurpose
@@ -177,7 +188,7 @@ class ExpenditureItem(BaseModel, revalidate_instances='always'):
     category: ExpenditureCategory
     year: int
     quarter: int = Field(ge=1, le=4)
-    mp_id: str | None
+    mp_id: str
     download_url: str
 
     csv_title: str
@@ -194,3 +205,10 @@ class ExpenditureItem(BaseModel, revalidate_instances='always'):
     @model_validator(mode='before')
     def strip_whitespaces(cls, v: dict) -> dict:
         return {key: value.strip() if isinstance(value, str) else value for key, value in v.items()}
+
+    def as_dict(self) -> dict:
+        return self.model_dump(exclude={'claim'}) | {
+            'category': self.category.value,
+            'institution': self.institution.value,
+            'caucus': self.caucus.value,
+        }
