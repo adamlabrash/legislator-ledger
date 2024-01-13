@@ -7,19 +7,16 @@ class ExpendituresSpider(scrapy.Spider):
     name = "expenditures"
     allowed_domains = ["ourcommons.ca"]
 
-    custom_settings = {'ITEM_PIPELINES': {'expenditures.pipelines.MemberExpenditureSpiderPipeline': 400}}
+    custom_settings = {'ITEM_PIPELINES': {'extraction.expenditures.pipelines.MemberExpenditureSpiderPipeline': 400}}
 
-    def __init__(self, execution_date: str):  # execution_date ex -> '2021-03'
-        self.year = execution_date.split('-')[0]
-        month = int(execution_date.split('-')[1])
-        self.quarter = 4 if month < 4 else (month - 1) // 3
-        self.start_urls = [f'https://www.ourcommons.ca/ProactiveDisclosure/en/members/{self.year}/{self.quarter}']
+    # def __init__(self, execution_date: str):  # execution_date ex -> '2021-03'
+    #     self.year = execution_date.split('-')[0]
+    #     month = int(execution_date.split('-')[1])
+    #     self.quarter = 4 if month < 4 else (month - 1) // 3
+    #     self.start_urls = [f'https://www.ourcommons.ca/ProactiveDisclosure/en/members/{self.year}/{self.quarter}']
 
-    # def __init__(self): # To run all at once
-    #     self.start_urls = []
-    #     for year in range(2021, 2025):
-    #         for quarter in range(1, 5):
-    #             self.start_urls.append(f'https://www.ourcommons.ca/ProactiveDisclosure/en/members/{year}/{quarter}')
+    def __init__(self):  # To run all at once
+        self.start_urls = [f'https://www.ourcommons.ca/ProactiveDisclosure/en/members/2021/2']
 
     def parse(self, response: Response):
         for member in response.xpath('//tr[@class="expenses-main-info"]'):
