@@ -7,11 +7,6 @@ from geopy.location import Location as GeoLocation
 from geopy.geocoders import Nominatim
 
 
-class PassengerClass(Enum):
-    BUSINESS = 'business-class'
-    ECONOMY = 'economy-class'
-
-
 @udf(returnType=StringType())
 def normalize_location_str(
     location: str,
@@ -30,9 +25,9 @@ def normalize_location_str(
 
 
 @udf(returnType=IntegerType())
-def calc_carbon_emissions(departure_airport: str, destination_airport: str, passenger_class: PassengerClass) -> int:
+def calc_carbon_emissions(departure_airport: str, destination_airport: str, passenger_class: str) -> int:
     return CarbonFlight().calculate_co2_from_airports(
-        departure_airport, destination_airport, passenger_class.value, trip_type='one-way'
+        departure_airport, destination_airport, passenger_class, trip_type='one-way'
     )
 
 
@@ -40,11 +35,12 @@ def calc_carbon_emissions(departure_airport: str, destination_airport: str, pass
 def calc_distance_between_coordinates(
     departure_lat: float, departure_lon: float, destination_lat: float, destination_lon: float
 ) -> float:
+    print(type(departure_lat), type(departure_lon), type(destination_lat), type(destination_lon))
     return haversine((departure_lat, departure_lon), (destination_lat, destination_lon))
 
 
 @udf(returnType=StringType())
-def calc_passenger_class(distance_travelled: float, traveller_type: str) -> PassengerClass:
+def calc_passenger_class(distance_travelled: float, traveller_type: str) -> str:
     # https://www.ourcommons.ca/Content/MAS/mas-e.pdf chapter 6, pg 8
     if (
         distance_travelled < 1274  # 1274km = 2hr flight time #TODO reduced vs full fare economy
@@ -52,8 +48,8 @@ def calc_passenger_class(distance_travelled: float, traveller_type: str) -> Pass
         or traveller_type == 'Parliamentary Intern'
         or traveller_type == 'House Officer Employee'
     ):
-        return PassengerClass.ECONOMY
-    return PassengerClass.BUSINESS
+        return 'economy-class'
+    return 'business-class'
 
 
 geo_api = Nominatim(user_agent="GetLoc")
