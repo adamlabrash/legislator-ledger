@@ -218,9 +218,6 @@ if __name__ == '__main__':
 
 
 '''
-BUG fix .title() in expenditures dataset Mcmurray => McMurray
-BUG missing travel events -> example: https://www.ourcommons.ca/ProactiveDisclosure/en/members/travel/2021/2/3283699b-5c58-486f-a315-a3f5e175d175
-
 TODO validate values before dumping into dataset
 TODO dump values into json dataset & supabase csv files
 
