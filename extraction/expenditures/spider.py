@@ -16,7 +16,10 @@ class ExpendituresSpider(scrapy.Spider):
     #     self.start_urls = [f'https://www.ourcommons.ca/ProactiveDisclosure/en/members/{self.year}/{self.quarter}']
 
     def __init__(self):  # To run all at once
-        self.start_urls = [f'https://www.ourcommons.ca/ProactiveDisclosure/en/members/2021/2']
+        self.start_urls = []
+        for year in range(2021, 2025):
+            for quarter in range(1, 5):
+                self.start_urls.append(f'https://www.ourcommons.ca/ProactiveDisclosure/en/members/{year}/{quarter}')
 
     def parse(self, response: Response):
         for member in response.xpath('//tr[@class="expenses-main-info"]'):

@@ -26,7 +26,7 @@ class MemberExpenditureSpiderPipeline:
         self.file.write(']')
         self.file.close()
 
-    def process_item(self, item, spider) -> list[dict]:  # item is a csv file + metadata
+    def process_item(self, item, spider) -> list:  # item is a csv file + metadata
         csv_data = csv.reader(StringIO(item['csv'].decode('utf-8-sig'), newline='\r\n'))
 
         metadata = {
@@ -59,6 +59,8 @@ class MemberExpenditureSpiderPipeline:
 
             self.file.write(line)
 
+        return expenditure_items
+
     def extract_url_parts(self, url: str) -> dict:
         url_parts = url.split('/')
         return {
@@ -83,7 +85,7 @@ class MemberExpenditureSpiderPipeline:
                     travel_claim = MemberTravelClaim.from_csv_row(row)
                     travel_claims.append(travel_claim)
                 except ValueError as e:  # invalid row
-                    print(row, e)
+                    print("Invalid row", row, e)
                     continue
 
         for travel_claim in travel_claims:
