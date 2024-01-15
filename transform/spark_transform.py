@@ -1,229 +1,130 @@
-import json
-from pyspark.sql import SparkSession
+import csv
 from pyspark.sql import DataFrame
-from transform.items import Location
+from transform.dataframe_loader import (
+    initialize_airport_dataframe,
+    initialize_travel_dataframe,
+    initialize_locations_dataframe,
+)
+from transform.missing_locations import update_locations_dataset
 from transform.spark_udf import (
     calc_carbon_emissions,
     calc_distance_between_coordinates,
     calc_passenger_class,
-    get_geo_api_location_data,
-    normalize_location_str,
 )
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 from pyspark.sql.functions import col
-import csv
-from extraction.expenditures.items import ExpenditureItem, MemberTravelClaim
-
-spark = SparkSession.builder.getOrCreate()
 
 
-def initialize_flights_dataframe() -> DataFrame:
+def filter_non_flight_travel_events(travel_df: DataFrame) -> DataFrame:
     '''
-    Loads, flattens and validates data from raw expenditures json file
+    This is the algorithm that looks at a travel event and determines if it was a flight or not
+
+    Future improvements:
+    -Go through travel events -> estimate cost per event with driving
+    -
     '''
 
-    with open('test_expenditures.json', encoding='utf-8-sig') as f:
-        expenditure_data = json.load(f)
+    # no locations reported
+    travel_df = travel_df.filter((travel_df.departure != '') | (travel_df.destination != ''))
 
-    travel_expenditures: list[dict] = []
-    for expenditure in expenditure_data:
-        expenditure = ExpenditureItem.model_validate(expenditure)
-        if isinstance(expenditure.claim, MemberTravelClaim):
-            for travel_event_data in expenditure.claim.as_dicts():
-                flattened_data = travel_event_data | expenditure.as_dict()
-                travel_expenditures.append(flattened_data)
+    # locations are the same -> not a flight
+    travel_df = travel_df.filter(travel_df.departure != travel_df.destination)
 
-    flights_df = spark.createDataFrame(data=travel_expenditures)
-    flights_df = flights_df.drop(
-        'claim', 'category', 'travel_events', 'accommodation_cost', 'meals_and_incidentals_cost', 'year', 'quarter'
-    )
-
-    # add normalized location columns
-    flights_df = flights_df.withColumn('departure_normalized', normalize_location_str(flights_df.departure))
-    flights_df = flights_df.withColumn('destination_normalized', normalize_location_str(flights_df.destination))
-
-    return flights_df
-
-
-def initialize_locations_dataframe() -> DataFrame:
-    locations = []
-    reader = csv.reader(open('transform/data/locations.csv', 'r'))
-    next(reader)  # skip header
-    for row in reader:
-        location = Location.from_csv_row(row)
-        locations.append(location.model_dump())
-
-    locations_df = spark.createDataFrame(data=locations)
-
-    # add normalized location column
-    locations_df = locations_df.withColumn('location_normalized', normalize_location_str(locations_df.location))
-    return locations_df
-
-
-def initialize_airport_dataframe() -> DataFrame:
-    airports = []
-    with open('transform/emissions_analysis/carbon_calculator/sources/airports.json') as file:
-        json_dict = json.loads(file.read())
-        for value in json_dict.values():
-            value['airport_longitude'] = float(value['lonlat'][0])
-            value['airport_latitude'] = float(value['lonlat'][1])
-            del value['lonlat']
-            airports.append(value)
-
-    airport_df = spark.createDataFrame(data=airports)
-
-    # NOTE change this when there are international flights
-    airport_df.filter(airport_df.icao_region_code != 'NARNAS')
-
-    return airport_df
-
-
-def filter_non_flight_travel_events(flights_df: DataFrame) -> DataFrame:
-    flights_df = flights_df.withColumn(
-        'total_travel_events_in_claim', F.count('claim_id').over(Window.partitionBy('claim_id'))
-    )
-
-    flights_df = flights_df.withColumn(
-        'total_points_used', flights_df.reg_points_used + flights_df.special_points_used + flights_df.USA_points_used
-    )
-
-    # TODO optimize this
-    is_flight_pattern = (flights_df.distance_travelled > 100) & (
-        flights_df.transport_cost / flights_df.total_travel_events_in_claim > 200
-    )
-
-    # keep events where travel points were used or distance travelled was greater than 100km
-    flights_df = flights_df.filter((flights_df.total_points_used > 0) | is_flight_pattern)
-
-    # TODO finish this
-    # events with more travel events than points used
-    # error_df = flights_df.filter(flights_df.total_travel_events_in_claim != (flights_df.total_points_used*2))
-
-    flights_df.filter((flights_df.departure != '') | (flights_df.destination != ''))  # no locations reported
-    flights_df.filter(flights_df.departure != flights_df.destination)  # locations are the same -> not a flight
-
-    return flights_df
-
-
-def get_missing_locations(flights_df: DataFrame, locations_df: DataFrame) -> DataFrame:
-    # get expenditure locations with missing geolocation/airport data
-    missing_departures = flights_df.join(
-        locations_df, flights_df.departure_normalized == locations_df.location_normalized, how='left_anti'
-    ).select('departure_normalized')
-    missing_destinations = flights_df.join(
-        locations_df, flights_df.destination_normalized == locations_df.location_normalized, how='left_anti'
-    ).select(col('destination_normalized').alias('location_normalized'))
-
-    # TODO apply additional matching logic
-    return missing_destinations.union(missing_departures).distinct()
-
-
-def get_geo_location_data_of_missing_locations(missing_locations_df: DataFrame) -> DataFrame:
-    missing_locations_df = missing_locations_df.withColumn(
-        'location_data', get_geo_api_location_data(missing_locations_df.location)
-    )
-
-    # TODO flag location values we couldn't find geolocation data for
-    missing_locations_df.filter(missing_locations_df.location_data.isNull())
-    return missing_locations_df
-
-
-def map_nearest_airport_to_missing_locations(missing_locations_df: DataFrame, airport_df: DataFrame) -> DataFrame:
-    combined_df = missing_locations_df.crossJoin(airport_df)
-    combined_df = combined_df.withColumn(
-        'distance_to_airport',
+    # TODO fix this
+    travel_df = travel_df.withColumn(
+        'distance_between_airports',
         calc_distance_between_coordinates(
-            combined_df.latitude, combined_df.longitude, combined_df.airport_latitude, combined_df.airport_longitude
-        ),
-    )
-    window_spec = Window.partitionBy('location')
-    combined_df = combined_df.withColumn('min_result', F.min('distance_to_airport').over(window_spec))
-    combined_df = combined_df.filter(F.col('distance_to_airport') == F.col('min_result')).drop('min_result')
-    combined_df.cache()
-    return combined_df
-
-
-def apply_carbon_calculations_to_flight_data(flights_df: DataFrame) -> DataFrame:
-    # calculate distance travelled
-    flights_df = flights_df.withColumn(
-        'distance_travelled',
-        calc_distance_between_coordinates(
-            flights_df.departure_latitude,
-            flights_df.departure_longitude,
-            flights_df.destination_latitude,
-            flights_df.destination_longitude,
+            travel_df.departure_latitude,
+            travel_df.departure_longitude,
+            travel_df.destination_latitude,
+            travel_df.destination_longitude,
         ),
     )
 
-    # calculate passenger flight class
-    flights_df = flights_df.withColumn(
-        'passenger_class', calc_passenger_class(flights_df.distance_travelled, flights_df.traveller_type)
+    # exclude travel events where distance travelled is less than 125km
+    travel_df = travel_df.filter(travel_df.distance_between_airports > 125)
+
+    # TODO
+    # exclude travel events where distance between destination and nearest airport is greater than total distance travelled/3
+    # travel_df = travel_df.filter(travel_df.departure_nearest_airport > travel_df.distance_travelled)
+
+    # exclude travel events where distance between departure and nearest airport is greater than total distance travelled/3
+    # travel_df = travel_df.filter(travel_df.destination_nearest_airport > travel_df.distance_travelled)
+
+    travel_df = travel_df.withColumn(
+        'avg_cost_per_event', travel_df.transport_cost / travel_df.total_travel_events_in_claim
     )
+    travel_df = travel_df.filter(travel_df.avg_cost_per_event > 100)
 
-    # calculate carbon emissions
-    flights_df = flights_df.withColumn(
-        'est_carbon_emissions',
-        calc_carbon_emissions(
-            flights_df.departure_nearest_airport, flights_df.destination_nearest_airport, flights_df.passenger_class
-        ),
-    )
+    travel_df = travel_df.cache()
 
-    return flights_df
-
-
-def map_locations_to_flights(locations_df: DataFrame, flights_df: DataFrame) -> DataFrame:
-    # departures
-    flights_df = flights_df.join(
-        locations_df, flights_df.departure_normalized == locations_df.location_normalized, how='left_outer'
-    )
-    for location_col in locations_df.columns:
-        flights_df = flights_df.withColumnRenamed(location_col, f'departure_{location_col}')
-
-    # destinations
-    flights_df = flights_df.join(
-        locations_df, flights_df.destination_normalized == locations_df.location_normalized, how='left_outer'
-    )
-    for location_col in locations_df.columns:
-        flights_df = flights_df.withColumnRenamed(location_col, f'destination_{location_col}')
-
-    # remove flights with no geolocation data
-    flights_df = flights_df.filter(
-        flights_df.destination_nearest_airport.isNotNull() & flights_df.departure_nearest_airport.isNotNull()
-    )
-
-    return flights_df
-
-
-if __name__ == '__main__':
-    flights_df = initialize_flights_dataframe()
-    locations_df = initialize_locations_dataframe()
-    airport_df = initialize_airport_dataframe()
-
-    flights_df = filter_non_flight_travel_events(flights_df)
-    # missing_locations_df = get_missing_locations(flights_df, locations_df)
-    # new_locations_df = map_nearest_airport_to_missing_locations(missing_locations_df, airport_df)
-
-    # locations_df = locations_df.union(new_locations_df).distinct()
-    flights_df = map_locations_to_flights(locations_df, flights_df)
-    flights_df = apply_carbon_calculations_to_flight_data(flights_df)
-
-    # TODO build relationships, validate data
-    flights_df.write.format('json').mode('append').save('flights.json')
+    travel_df.show(vertical=True, n=2)
     import pdb
 
     pdb.set_trace()
+    # T0215029 -> test case
+    return travel_df
 
-    locations_df.write.csv('transform/data/locations_new.csv', mode='overwrite', header=True)
+
+def apply_carbon_calculations_to_flight_data(travel_df: DataFrame) -> DataFrame:
+    # calculate passenger flight class
+    travel_df = travel_df.withColumn(
+        'passenger_class', calc_passenger_class(travel_df.distance_between_airports, travel_df.traveller_type)
+    )
+
+    # calculate carbon emissions
+    travel_df = travel_df.withColumn(
+        'est_carbon_emissions',
+        calc_carbon_emissions(
+            travel_df.departure_nearest_airport, travel_df.destination_nearest_airport, travel_df.passenger_class
+        ),
+    )
+
+    return travel_df
 
 
-'''
-TODO validate values before dumping into dataset
-TODO dump values into json dataset & supabase csv files
+def map_locations_to_flights(locations_df: DataFrame, travel_df: DataFrame) -> DataFrame:
+    # departures
+    travel_df = travel_df.join(
+        locations_df, travel_df.departure_normalized == locations_df.location_normalized, how='left_outer'
+    )
+    for location_col in locations_df.columns:
+        travel_df = travel_df.withColumnRenamed(location_col, f'departure_{location_col}')
 
-# IMPROVE flight identification algorithm
+    # destinations
+    travel_df = travel_df.join(
+        locations_df, travel_df.destination_normalized == locations_df.location_normalized, how='left_outer'
+    )
+    for location_col in locations_df.columns:
+        travel_df = travel_df.withColumnRenamed(location_col, f'destination_{location_col}')
 
-TODO look at other travel events in claim, determine which were flights
-# is_flight_pattern = (travels_df.distance_travelled > 50) & (travels_df.transport_cost > 200)
-# price & distance, min distance of 50km, major airports (?)
-'''
+    # remove flights with no geolocation data
+    travel_df = travel_df.filter(
+        travel_df.destination_nearest_airport.isNotNull() & travel_df.departure_nearest_airport.isNotNull()
+    )
+
+    return travel_df
+
+
+def update_csv_file(file_name: str, df: DataFrame):
+    with open(f'{file_name}.csv', 'w') as f:
+        csv_writer = csv.writer(f)
+        csv_writer.writerow(df.columns)
+        for row in df.collect():
+            csv_writer.writerow(row)
+
+
+if __name__ == '__main__':
+    travel_df = initialize_travel_dataframe()
+    locations_df = initialize_locations_dataframe()
+    locations_df = update_locations_dataset(travel_df, locations_df)
+    update_csv_file('locations', locations_df)
+
+    # travel_df = map_locations_to_flights(locations_df, travel_df)
+    # travel_df = filter_non_flight_travel_events(travel_df)
+    # travel_df = apply_carbon_calculations_to_flight_data(travel_df)
+
+    # TODO airplane csv file,
+    # TODO locations csv file
+    # TODO flight csv file

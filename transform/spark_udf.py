@@ -1,7 +1,7 @@
 from enum import Enum
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType, IntegerType, FloatType
-from transform.emissions_analysis.carbon_calculator.carbon_flight import CarbonFlight
+from transform.carbon_calculator.carbon_flight import CarbonFlight
 from haversine import haversine
 from geopy.location import Location as GeoLocation
 from geopy.geocoders import Nominatim
@@ -35,7 +35,6 @@ def calc_carbon_emissions(departure_airport: str, destination_airport: str, pass
 def calc_distance_between_coordinates(
     departure_lat: float, departure_lon: float, destination_lat: float, destination_lon: float
 ) -> float:
-    print(type(departure_lat), type(departure_lon), type(destination_lat), type(destination_lon))
     return haversine((departure_lat, departure_lon), (destination_lat, destination_lon))
 
 

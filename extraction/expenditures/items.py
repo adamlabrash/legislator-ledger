@@ -159,7 +159,9 @@ class MemberTravelClaim(TravelClaim):
 
     def as_dicts(self) -> Iterator[dict]:
         for event in self.travel_events:
-            yield self.model_dump(exclude={'travel_events'}) | event.as_dict()
+            yield self.model_dump(exclude={'travel_events'}) | event.as_dict() | {
+                'total_travel_events_in_claim': len(self.travel_events)
+            }
 
 
 class HouseOfficerTravelClaim(TravelClaim):
