@@ -1,21 +1,22 @@
 from pyspark.sql import DataFrame
 from transform.dataframe_loader import initialize_airport_dataframe
-from transform.spark_udf import (
-    calc_distance_between_coordinates,
-    get_geo_api_location_data,
-)
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 from pyspark.sql.functions import col
+from pyspark.sql.functions import udf
+from geopy.location import Location as GeoLocation
+from geopy.geocoders import Nominatim
+from haversine import haversine
+from pyspark.sql.types import FloatType, MapType
 
 
 def update_locations_dataset(travel_df: DataFrame, locations_df: DataFrame) -> DataFrame:
     # missing_locations_df = get_locations_not_in_geolocation_dataset(travel_df, locations_df)
     # missing_locations_df = get_geo_location_data_of_missing_locations(missing_locations_df)
-    missing_locations_df = map_nearest_airport_to_missing_locations(missing_locations_df)
+    missing_locations_df = map_nearest_airport_to_missing_locations(locations_df)
 
     missing_locations_df = missing_locations_df.drop('icao_region_code', 'iata_code', 'location_normalized')
-    missing_locations_df = locations_df.union(missing_locations_df).distinct()
+    # missing_locations_df = locations_df.union(missing_locations_df).distinct()
     return missing_locations_df
 
 
@@ -54,3 +55,27 @@ def get_geo_location_data_of_missing_locations(missing_locations_df: DataFrame) 
 
     # TODO flag location values we couldn't find geolocation data for
     return missing_locations_df.filter(missing_locations_df.location_data.isNull())
+
+
+geo_api = Nominatim(user_agent="GetLoc")
+
+
+@udf()
+def get_geo_api_location_data(location_str: str) -> dict | None:
+    geo_location: GeoLocation = geo_api.geocode(location_str, country_codes='CA', exactly_one=True)  # type: ignore
+    if geo_location is None:
+        print("Unable to find location for:", location_str)
+        return None
+    return {
+        'name': location_str,
+        'latitude': geo_location.latitude,
+        'longitude': geo_location.longitude,
+        'address': geo_location.address,
+    }
+
+
+@udf(returnType=FloatType())
+def calc_distance_between_coordinates(
+    departure_lat: float, departure_lon: float, destination_lat: float, destination_lon: float
+) -> float:
+    return haversine((departure_lat, departure_lon), (destination_lat, destination_lon))

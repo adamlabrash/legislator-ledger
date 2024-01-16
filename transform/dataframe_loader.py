@@ -4,9 +4,27 @@ import csv
 import json
 from pyspark.sql import DataFrame
 from pyspark.sql import SparkSession
-from transform.spark_udf import normalize_location_str
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
 
 spark = SparkSession.builder.config("spark.driver.memory", "8g").getOrCreate()
+
+
+@udf(returnType=StringType())
+def normalize_location_str(
+    location: str,
+) -> str:  # for matching expenditure locations with existing locations in dataset
+    return (
+        location.replace('-', ' ')
+        .replace(' (Ville)', '')
+        .replace(' (City / Ville)', '')
+        .replace(' (Village)', '')
+        .replace(' (District Municipality / Municipalité De District)', '')
+        .replace('é', 'e')
+        .replace('Sainte', 'Saint')  # Replace ste with st? Saint with st?
+        .upper()
+        .strip()
+    )
 
 
 def initialize_travel_dataframe() -> DataFrame:
