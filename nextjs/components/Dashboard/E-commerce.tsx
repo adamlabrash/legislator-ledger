@@ -5,6 +5,7 @@ import ChartThree from "../Charts/ChartThree";
 import ChartTwo from "../Charts/ChartTwo";
 import ChatCard from "../Chat/ChatCard";
 import ChartSix from "../Charts/ChartSix";
+import ChartSeven from "../Charts/ChartSeven";
 import CardDataStats from "../CardDataStats";
 import canadaJson from '../../public/canada.json'; 
 
@@ -116,7 +117,7 @@ const ECommerce: React.FC = () => {
         <div className="col-span-12 xl:col-span-8">
           <ChartSix />
         </div>
-        <ChatCard />
+        <ChartSeven />
       </div>
     </>
   );
