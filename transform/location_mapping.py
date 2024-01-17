@@ -14,8 +14,8 @@ def update_locations_dataset(travel_df: DataFrame, locations_df: DataFrame) -> D
     # missing_locations_df = get_locations_not_in_geolocation_dataset(travel_df, locations_df)
     # missing_locations_df = get_geo_location_data_of_missing_locations(missing_locations_df)
     missing_locations_df = map_nearest_airport_to_missing_locations(locations_df)
-
     missing_locations_df = missing_locations_df.drop('icao_region_code', 'iata_code', 'location_normalized')
+
     # missing_locations_df = locations_df.union(missing_locations_df).distinct()
     return missing_locations_df
 

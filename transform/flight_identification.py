@@ -22,12 +22,14 @@ def identify_flight_travel_events(travel_df: DataFrame) -> DataFrame:
     -all travel within Newfoundland is considered drives, with one or two exceptions
     -better differentiate costs between flights and drives in the same travel claim
     -Compare driving cost estimations to flight cost estimations of same travel event.
+    -Look at available departure/destinations of the airports/airlines
     '''
+
     travel_df = filter_travel_events_with_no_locations(travel_df)
     travel_df = filter_departures_and_destinations_with_same_airport(travel_df)
     travel_df = filter_travel_distances_under_minimum_km(travel_df)
     travel_df = filter_events_with_proportionately_high_distance_to_airports(travel_df)
-    # travel_df = filter_cost_per_km_under_threshold(travel_df)
+    travel_df = filter_cost_per_km_under_threshold(travel_df)
 
     travel_df = travel_df.cache()
     travel_df.show(vertical=True, n=10)
@@ -81,8 +83,25 @@ def filter_travel_distances_under_minimum_km(travel_df: DataFrame) -> DataFrame:
 
 
 def filter_cost_per_km_under_threshold(travel_df: DataFrame) -> DataFrame:
+    # get aggregate average cost per km for travel events that have the same destination and departure locations
+
+    # travel_df = travel_df.select('*').where(travel_df.claim_id == 'T0215029')
+    travel_df = travel_df.withColumn('cost_per_km', travel_df.transport_cost / travel_df.distance_between_locations)
+
+    test = travel_df.filter(travel_df.cost_per_km < 0.5)
+
+    df = travel_df.select('*').where(
+        (travel_df.claim_id == 'T0234080')
+        & (travel_df.csv_title == 'Members – Detailed Travel Expenditures Report – Vis, Brad – Q2 2023')
+    )
+
+    import pdb
+
+    pdb.set_trace()
+
     return travel_df
     # TODO
+    # T0234080
     # exclude travel events where average cost per km is less than $0.5
     # thresholds will be different for km travelled
     # assume eliminated travel events are drives -> look at difference

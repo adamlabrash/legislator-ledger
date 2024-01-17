@@ -75,14 +75,44 @@ def initialize_airport_dataframe() -> DataFrame:
     with open('transform/carbon_calculator/sources/airports.json') as file:
         json_dict = json.loads(file.read())
         for value in json_dict.values():
-            value['airport_longitude'] = float(value['lonlat'][0])
-            value['airport_latitude'] = float(value['lonlat'][1])
-            del value['lonlat']
+            value['airport_longitude'] = float(value['lon'])
+            value['airport_latitude'] = float(value['lat'])
+            del value['lon']
+            del value['lat']
             airports.append(value)
 
-    airport_df = spark.createDataFrame(data=airports)
+    return spark.createDataFrame(data=airports)
 
-    # NOTE change this when there are international flights
-    airport_df.filter(airport_df.icao_region_code != 'NARNAS')
 
-    return airport_df
+# import json
+
+
+
+with open('transform/carbon_calculator/sources/airports_new.json', 'r') as f:
+    with open('transform/carbon_calculator/sources/airports.json', 'w') as out:
+        #   TODO eliminate smaller airports within 50km of major airports
+        out.write('{\n')
+        json_dict = json.loads(f.read())
+        for key, value in json_dict.items():
+            airport_name = value['name'].lower()
+            if (
+                'helipad' in airport_name
+                or 'heliport' in airport_name
+                or 'army' in airport_name
+                or 'navy' in airport_name
+                or 'naval' in airport_name
+                or 'air force' in airport_name
+                or 'state' in airport_name
+                or 'guard' in airport_name
+                or 'military' in airport_name
+                or value['country'] != 'CA'
+            ):
+                continue
+
+            del value['country']
+            del value['icao']
+            del value['elevation']
+            del value['tz']
+
+            out.write(f'"{key}": {json.dumps(value, ensure_ascii=True, indent=4)},\n')
+        out.write('\n}')
