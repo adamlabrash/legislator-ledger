@@ -8,6 +8,9 @@ AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
 AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
 AWS_BUCKET_NAME = os.environ['AWS_BUCKET_NAME']
 
+# TODO remove conflict of interest spider and move settings.py into spider
+
+
 # BOT_NAME = "expenditures_spider"
 # SPIDER_MODULES = ["expenditures.spiders"]
 # NEWSPIDER_MODULE = "expenditures.spiders"

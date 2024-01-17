@@ -101,10 +101,10 @@ class CarbonFlight(Carbon):
         dest_airport_dict = airports_json[iata_dest]
 
         dist_m = self.haversine(
-            lat1=self.parse_airport_lat(orig_airport_dict),
-            lon1=self.parse_airport_lon(orig_airport_dict),
-            lat2=self.parse_airport_lat(dest_airport_dict),
-            lon2=self.parse_airport_lon(dest_airport_dict),
+            lat1=orig_airport_dict['lat'],
+            lon1=orig_airport_dict['lon'],
+            lat2=dest_airport_dict['lat'],
+            lon2=dest_airport_dict['lon'],
         )
         dist_km = dist_m // 1000 + self.detour_constant
 
@@ -136,24 +136,3 @@ class CarbonFlight(Carbon):
         meters = int(km * 1000)
 
         return meters
-
-    def parse_airport_lat(self, airport_dict):
-        """Return latitude of airport, given as argument an airport dict from the json file."""
-
-        airport_coordinates = self.parse_airport_coordinates(airport_dict)
-
-        return airport_coordinates[1]
-
-    def parse_airport_lon(self, airport_dict):
-        """Return latitude of airport, given as argument an airport dict from the json file."""
-
-        airport_coordinates = self.parse_airport_coordinates(airport_dict)
-
-        return airport_coordinates[0]
-
-    def parse_airport_coordinates(self, airport_dict):
-        """Return latitude of airport, given as argument an airport dict from the json file."""
-
-        airport_coordinates = airport_dict['lonlat']
-
-        return airport_coordinates
