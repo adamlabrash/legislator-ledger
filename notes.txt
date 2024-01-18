@@ -22,3 +22,13 @@ https://www.ourcommons.ca/Content/Misc/2022-2023-PreventionReport-e.pdf
 https://www.ourcommons.ca/ProactiveDisclosure/en/house-administration/2023/4/ExpenditureCategory/csv
 https://www.ourcommons.ca/ProactiveDisclosure/en/house-officers/{year}/{quarter}/ExpenditureCategory/csv
 https://www.ourcommons.ca/Boie/en/reports-and-disclosure -> several things to download here
+
+# ROBOTSTXT_OBEY = True
+
+AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_START_DELAY = 3
+AUTOTHROTTLE_TARGET_CONCURRENCY = 2.0
+
+# Set settings whose default value is deprecated to a future-proof value
+REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
+TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
