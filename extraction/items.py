@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Any, Iterator
 from urllib.parse import unquote
-from extraction.expenditures.enums import (
+from extraction.enums import (
     Caucus,
     ExpenditureCategory,
     HospitalityEventType,
@@ -32,12 +32,6 @@ class ContractClaim(BaseModel):
                 'total_cost': row[3],
             }
         )
-
-
-class HouseAdminContractClaim(ContractClaim):
-    original_contract_value: Decimal = Field(..., decimal_places=2)
-    amended_contract_value: Decimal = Field(..., decimal_places=2)
-
 
 ####### HOSPITALITY
 class HospitalityClaim(BaseModel):
@@ -164,23 +158,7 @@ class MemberTravelClaim(TravelClaim):
             }
 
 
-class HouseOfficerTravelClaim(TravelClaim):
-    traveller_type: TravellerType
-    purpose_of_travel: TravelPurpose
-    itenerary: str
-    role: str
-
-
-class AdminTravelClaim(TravelClaim):
-    purpose_of_travel: TravelPurpose
-
-
-class CommitteeTravelClaim(TravelClaim):
-    other: Decimal = Field(..., decimal_places=2)
-    per_diems: Decimal = Field(..., decimal_places=2)
-
-
-EXPENDITURE_CLAIM = ContractClaim | HospitalityClaim | MemberTravelClaim | HouseOfficerTravelClaim | AdminTravelClaim
+EXPENDITURE_CLAIM = ContractClaim | HospitalityClaim | MemberTravelClaim
 
 
 class ExpenditureItem(BaseModel, revalidate_instances='always'):

@@ -2,12 +2,33 @@ import scrapy
 from scrapy.http import Response
 from scrapy.selector import SelectorList
 
+from dotenv import load_dotenv, find_dotenv
+import os
+
+load_dotenv(find_dotenv())
+
+# S3 Bucket credentials
+AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+AWS_BUCKET_NAME = os.environ['AWS_BUCKET_NAME']
+
 
 class ExpendituresSpider(scrapy.Spider):
     name = "expenditures"
     allowed_domains = ["ourcommons.ca"]
 
-    custom_settings = {'ITEM_PIPELINES': {'extraction.expenditures.pipelines.MemberExpenditureSpiderPipeline': 400}}
+    custom_settings = {
+        'ITEM_PIPELINES': {'extraction.expenditures.pipelines.MemberExpenditureSpiderPipeline': 400},
+        'FEEDS': {
+            f's3://{AWS_BUCKET_NAME}/%(name)s/%(year)s-%(quarter)s.json': {
+                'format': 'json',
+                'encoding': 'utf8',
+                'store_empty': False,
+            }
+        },
+        'AWS_ACCESS_KEY_ID': AWS_ACCESS_KEY_ID,
+        'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
+    }
 
     # def __init__(self, execution_date: str):  # execution_date ex -> '2021-03'
     #     self.year = execution_date.split('-')[0]
