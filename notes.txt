@@ -32,3 +32,6 @@ AUTOTHROTTLE_TARGET_CONCURRENCY = 2.0
 # Set settings whose default value is deprecated to a future-proof value
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
+
+Minor airports within 75km of a major airport (top 20 airports with most traffic) are excluded from airports.json dataset
+Additionally, Coast Guard and Military bases are excluded 

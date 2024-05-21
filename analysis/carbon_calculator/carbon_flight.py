@@ -2,7 +2,7 @@
 
 from math import asin, cos, radians, sin, sqrt
 
-from transform.carbon_calculator.carbon import Carbon
+from analysis.carbon_calculator.carbon import Carbon
 
 
 class CarbonFlight(Carbon):
@@ -83,7 +83,11 @@ class CarbonFlight(Carbon):
 
         if hour < 3.3:
             avg_speed = (
-                14.1 + 495 * hour - 110 * hour * hour + 9.85 * hour * hour * hour - 0.309 * hour * hour * hour * hour
+                14.1
+                + 495 * hour
+                - 110 * hour * hour
+                + 9.85 * hour * hour * hour
+                - 0.309 * hour * hour * hour * hour
             )
 
         else:
