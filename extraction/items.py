@@ -1,20 +1,23 @@
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Iterator
 from urllib.parse import unquote
+
+import pytz
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
 from extraction.enums import (
     Caucus,
     ExpenditureCategory,
     HospitalityEventType,
+    HospitalityPurpose,
     Institution,
     TravellerType,
-    HospitalityPurpose,
     TravelPurpose,
 )
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from datetime import date, datetime
 
 
-###### THIRD PARTY CONTRACTS
+###### THIRD PARTY CONTRACTS #######
 class ContractClaim(BaseModel):
     supplier: str
     description: str
@@ -33,7 +36,8 @@ class ContractClaim(BaseModel):
             }
         )
 
-####### HOSPITALITY
+
+####### HOSPITALITY #######
 class HospitalityClaim(BaseModel):
     claim_id: str
     date: date
@@ -66,7 +70,7 @@ class AdminHospitality(HospitalityClaim):
     host: str
 
 
-####### TRAVEL
+####### TRAVEL EXPENDITURES #######
 class TravelClaim(BaseModel):
     claim_id: str
     transport_cost: Decimal = Field(..., decimal_places=2)
@@ -119,7 +123,6 @@ class TravelEvent(BaseModel):
             'purpose_of_travel': self.purpose_of_travel.value,
         }
 
-
 class MemberTravelClaim(TravelClaim):
     reg_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5)
     special_points_used: Decimal = Field(..., decimal_places=1, multiple_of=0.5)
@@ -164,25 +167,22 @@ EXPENDITURE_CLAIM = ContractClaim | HospitalityClaim | MemberTravelClaim
 class ExpenditureItem(BaseModel, revalidate_instances='always'):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    # url parts
-    category: ExpenditureCategory
-    year: int
-    quarter: int = Field(ge=1, le=4)
-    mp_id: str
-    download_url: str
-
     csv_title: str
-    extracted_at: datetime
+    download_url: str
+    extracted_at: datetime = datetime.now(tz=pytz.UTC)
 
+    category: ExpenditureCategory
+    mp_id: str
     institution: Institution
-
     caucus: Caucus
     name: str
     constituency: str
+    year: int
+    quarter: int = Field(ge=1, le=4)
 
     claim: EXPENDITURE_CLAIM
 
-    @model_validator(mode='before')
+    @model_validator(mode='before')  # type: ignore
     def strip_whitespaces(cls, v: dict) -> dict:
         return {key: value.strip() if isinstance(value, str) else value for key, value in v.items()}
 

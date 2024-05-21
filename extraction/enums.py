@@ -40,8 +40,12 @@ class HospitalityEventType(Enum):
 class HospitalityPurpose(Enum):
     MEET_VISITORS_OF_MEMBER_OFFICE = 'To meet visitors of Member’s office'
     ATTEND_STAFF_EVENTS_INCLUDING_TRAINING = 'To attend staff events including training'
-    DISCUSS_CONSTITUENCY_ISSUES_WITH_STAKEHOLDERS = 'To discuss constituency issues with stakeholders'
-    DISCUSS_BUSINESS_OF_THE_HOUSE_CAUCUS_AND_COMMITTEES = 'To discuss business of the House, caucus and committees'
+    DISCUSS_CONSTITUENCY_ISSUES_WITH_STAKEHOLDERS = (
+        'To discuss constituency issues with stakeholders'
+    )
+    DISCUSS_BUSINESS_OF_THE_HOUSE_CAUCUS_AND_COMMITTEES = (
+        'To discuss business of the House, caucus and committees'
+    )
     PLAN_MEMBERS_PRIORITIES_AND_ACTIVITIES = "To plan Member's priorities and activities"
     EXCHANGE_WITH_DIGNITARIES = 'To exchange with dignitaries'
     MEET_CONSTITUENTS = 'To meet constituents'
@@ -73,14 +77,20 @@ class TravelPurpose(Enum):
     PARTICIPATE_GOVERNMENT_PROGRAM_INITIATIVE = 'To participate in a government program initiative'
     ATTEND_EVENT_GUEST_SPEAKER = 'To attend an event as a guest speaker'
     SUPPORT_PARLIAMENTARY_ASSOCIATION = 'To support a parliamentary association'
-    ATTEND_MEETINGS_UN_OFFICIALS_NYC = 'To attend meetings with United Nations’ officials in New York City'
+    ATTEND_MEETINGS_UN_OFFICIALS_NYC = (
+        'To attend meetings with United Nations’ officials in New York City'
+    )
     SUPPORT_PARLIAMENTARY_COMMITTEE = 'To support a parliamentary committee'
     SECONDARY_RESIDENCE = 'Secondary Residence'
     DRIVE_MEMBER_AIRPORT_TERMINAL = 'To drive Member to/from terminal'
-    ATTEND_MEETINGS_STAKEHOLDERS_BUSINESS_HOUSE = 'To attend meetings with stakeholders about business of the House'
+    ATTEND_MEETINGS_STAKEHOLDERS_BUSINESS_HOUSE = (
+        'To attend meetings with stakeholders about business of the House'
+    )
     ATTEND_CONSTITUENCY_EVENT = 'To attend a constituency event'
     SUPPORT_HOUSE_OFFICER = 'To support the House Officer'
-    SUPPORT_MEMBER_NATIONAL_CAUCUS_RESEARCH = 'To support the Member responsible of the National Caucus Research Office'
+    SUPPORT_MEMBER_NATIONAL_CAUCUS_RESEARCH = (
+        'To support the Member responsible of the National Caucus Research Office'
+    )
     ATTEND_AN_EVENT = 'To attend an event'
     ATTEND_BUSINESS_MEETING = 'To attend a business meeting'
     TRAVEL_BETWEEN_CONSTITUENCY_AND_OTTAWA = 'To travel to/from constituency and Ottawa'

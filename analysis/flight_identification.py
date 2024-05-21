@@ -1,22 +1,28 @@
+from analysis.carbon_calculations import calc_distance_between_coordinates
 from pyspark.sql import DataFrame
-from haversine import haversine
-from pyspark.sql.functions import udf
-from pyspark.sql.types import FloatType
+
+MIN_TRAVEL_DISTANCE_KM = 125
+AVERAGE_COST_PER_KM_THRESHOLD = 0.5
+TOTAL_COST_THRESHOLD = 200
 
 
 def identify_flight_travel_events(travel_df: DataFrame) -> DataFrame:
     '''
-    This is the algorithm for identifying flights from the travel dataset.
+    This is the algorithm for identifying which travel expenditures are flights (opposed to driving expenditures) from the travel dataset.
 
-    In order to be identified as a flight, a travel event must meet all of the following criteria:
+    This algorithm is not perfect, specifically for outlier events (ie someone drives 1000km instead of flying), but leans conservatively when predicting flights.
+
+    In order to be identified as a flight, a travel event must meet ALL of the following criteria:
     - Departure and destination locations are not the same
     - The distance between locations is greater than 125km
     - The distance between airports is greater than 125km
-    - The total distance from the departure/destination locations to their nearest airports must be less than half of The total distance travelled.
-    - The average cost per km travelled must be over a certain threshold
+    - Where the distance driving to airports is greater than half of total distance travelled.
+    - The total distance from the departure/destination locations to their nearest airports must be less than half of the total distance travelled.
 
+    Airports are determined by matching the geo-cordinates of the expenditure location to the nearest non-military/research, public airport.
 
     Future improvements:
+    -Look at cost per km driving vs flight
     -Compare costs of identical travel events across the full dataset and identify drop off price for flights & drives (account for inflation)
     -look at flight time vs driving time estimations
     -all travel within Newfoundland is considered drives, with one or two exceptions
@@ -29,12 +35,9 @@ def identify_flight_travel_events(travel_df: DataFrame) -> DataFrame:
     travel_df = filter_departures_and_destinations_with_same_airport(travel_df)
     travel_df = filter_travel_distances_under_minimum_km(travel_df)
     travel_df = filter_events_with_proportionately_high_distance_to_airports(travel_df)
-    travel_df = filter_cost_per_km_under_threshold(travel_df)
 
     travel_df = travel_df.cache()
     travel_df.show(vertical=True, n=10)
-    # T0214944 -> test case
-    # T0215029 -> test case
 
     return travel_df
 
@@ -45,14 +48,9 @@ def filter_travel_events_with_no_locations(travel_df: DataFrame) -> DataFrame:
 
 def filter_departures_and_destinations_with_same_airport(travel_df: DataFrame) -> DataFrame:
     travel_df = travel_df.filter(travel_df.departure != travel_df.destination)
-    return travel_df.filter(travel_df.departure_nearest_airport != travel_df.destination_nearest_airport)
-
-
-@udf(returnType=FloatType())
-def calc_distance_between_coordinates(
-    departure_lat: float, departure_lon: float, destination_lat: float, destination_lon: float
-) -> float:
-    return haversine((departure_lat, departure_lon), (destination_lat, destination_lon))
+    return travel_df.filter(
+        travel_df.departure_nearest_airport != travel_df.destination_nearest_airport
+    )
 
 
 def filter_travel_distances_under_minimum_km(travel_df: DataFrame) -> DataFrame:
@@ -66,7 +64,7 @@ def filter_travel_distances_under_minimum_km(travel_df: DataFrame) -> DataFrame:
         ),
     )
     # exclude travel events where distance travelled between locations is less than 125km
-    travel_df = travel_df.filter(travel_df.distance_between_locations > 125)
+    travel_df = travel_df.filter(travel_df.distance_between_locations > MIN_TRAVEL_DISTANCE_KM)
 
     travel_df = travel_df.withColumn(
         'distance_between_airports',
@@ -79,37 +77,11 @@ def filter_travel_distances_under_minimum_km(travel_df: DataFrame) -> DataFrame:
     )
 
     # exclude travel events where distance travelled between airports is less than 125km
-    return travel_df.filter(travel_df.distance_between_airports > 125)
+    return travel_df.filter(travel_df.distance_between_airports > MIN_TRAVEL_DISTANCE_KM)
 
 
-def filter_cost_per_km_under_threshold(travel_df: DataFrame) -> DataFrame:
-    # get aggregate average cost per km for travel events that have the same destination and departure locations
-
-    # travel_df = travel_df.select('*').where(travel_df.claim_id == 'T0215029')
-    travel_df = travel_df.withColumn('cost_per_km', travel_df.transport_cost / travel_df.distance_between_locations)
-
-    test = travel_df.filter(travel_df.cost_per_km < 0.5)
-
-    df = travel_df.select('*').where(
-        (travel_df.claim_id == 'T0234080')
-        & (travel_df.csv_title == 'Members – Detailed Travel Expenditures Report – Vis, Brad – Q2 2023')
-    )
-
-    import pdb
-
-    pdb.set_trace()
-
-    return travel_df
-    # TODO
-    # T0234080
-    # exclude travel events where average cost per km is less than $0.5
-    # thresholds will be different for km travelled
-    # assume eliminated travel events are drives -> look at difference
-
-    # travel_df = travel_df.withColumn(
-    #     'avg_cost_per_event', travel_df.transport_cost / travel_df.total_travel_events_in_claim
-    # )
-    # return travel_df.filter(travel_df.avg_cost_per_event > 100)
+def filter_total_cost_below_threshold(travel_df: DataFrame) -> DataFrame:
+    return travel_df.filter(travel_df.transport_cost > TOTAL_COST_THRESHOLD)
 
 
 def filter_events_with_proportionately_high_distance_to_airports(travel_df: DataFrame) -> DataFrame:

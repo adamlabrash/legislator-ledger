@@ -57,7 +57,7 @@ Each expenditure item contains a travel, hospitality, or a contract claim. The b
     },
     "download_url": {
         "type": "string",
-        "description": "Reference to the original data source"
+        "description": "Reference to the original data source. Note that the year present in the url is off by one year."
     },
     "csv_title": {
         "type": "string",
