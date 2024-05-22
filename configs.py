@@ -12,7 +12,7 @@ load_dotenv(find_dotenv())
 AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
 AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
 AWS_BUCKET_NAME = os.environ['AWS_BUCKET_NAME']
-
+BETTERSTACK_TOKEN = os.environ['BETTERSTACK_TOKEN']
 
 def initialize_logger() -> Any:
     log.remove()
@@ -28,7 +28,7 @@ def initialize_logger() -> Any:
 
     # upload logs to betterStack cloud
     log.add(
-        LogtailHandler(source_token="dkddWdG8Jt8cVMzXJyzmLKWg"),
+        LogtailHandler(source_token=BETTERSTACK_TOKEN),
         backtrace=True,
         diagnose=True,
         format="<green>{time:DD:HH:mm:ss}</green>|<level>{level}</level>|{file}|{function}|{line}|    <level>{message}</level>",
