@@ -112,8 +112,6 @@ class CarbonFlight(Carbon):
         )
         dist_km = dist_m // 1000 + self.detour_constant
 
-        print('Real distance:', dist_km, 'km')
-
         return dist_km
 
     def haversine(self, lat1, lon1, lat2, lon2):

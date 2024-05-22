@@ -1,5 +1,8 @@
+import csv
+
 from pyspark.sql import DataFrame
 
+from analysis.carbon_calculations import apply_carbon_calculations_to_travel_df
 from analysis.dataframe_loader import (
     initialize_locations_dataframe,
     initialize_travel_dataframe,
@@ -30,8 +33,8 @@ def map_locations_to_flights(locations_df: DataFrame, travel_df: DataFrame) -> D
 
     # remove flights with no geolocation data
     travel_df = travel_df.filter(
-        travel_df.destination_nearest_airport.isNotNull()
-        & travel_df.departure_nearest_airport.isNotNull()
+        travel_df.destination_nearest_airport_icao.isNotNull()
+        & travel_df.departure_nearest_airport_icao.isNotNull()
     )
 
     return travel_df
@@ -43,38 +46,19 @@ if __name__ == '__main__':
 
     travel_with_locations_df = map_locations_to_flights(locations_df, travel_df)
     df = identify_flight_travel_events(travel_with_locations_df)
-    breakpoint()
-
-
-# with open('locations.csv', 'w') as f:
-#     csv_writer = csv.writer(f)
-#     for location in locations:
-
-#         for airport in airports:
-#             if (
-#                 airport.iata == location.nearest_airport
-#                 or location.nearest_airport == airport.icao
-#             ):
-#                 vals = location.model_dump(mode='json') | {'nearest_airport_icao': airport.icao}
-#                 csv_writer.writerow(vals.values())
-#                 break
-#         else:
-#             closest_airport, closest_distance = None, None
-#             for airport in airports:
-#                 distance = calc_distance_between_coordinates(
-#                     departure_lat=airport.latitude,
-#                     departure_lon=airport.longitude,
-#                     destination_lat=location.latitude,
-#                     destination_lon=location.longitude,
-#                 )
-#                 if not closest_airport:
-#                     closest_airport, closest_distance = airport, distance
-
-#                 elif distance < closest_distance:
-#                     closest_airport, closest_distance = airport, distance
-
-#             vals = location.model_dump(mode='json') | {
-#                 'nearest_airport_icao': closest_airport.icao
-#             }
-#             csv_writer.writerow(vals.values())
-# TODO map travel events to location ids
+    df = apply_carbon_calculations_to_travel_df(df)
+    df = df.drop(
+        'USA_points_used',
+        'reg_points_used',
+        'special_points_used',
+        'total_travel_events_in_claim',
+        'transport_cost',
+        'destination_location',
+        'departure_location',
+        'destination_location_normalized',
+        'departure_location',
+        'departure_location_normalized',
+    )
+    df.repartition(1).write.option("delimiter", ",").option("header", "true").csv(
+        "analysis/flights.csv"
+    )

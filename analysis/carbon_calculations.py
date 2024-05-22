@@ -1,23 +1,24 @@
-from carbon_calculator.carbon_flight import CarbonFlight
 from haversine import haversine
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import udf
 from pyspark.sql.types import FloatType, IntegerType, StringType
+
+from analysis.carbon_calculator.carbon_flight import CarbonFlight
 
 
 def apply_carbon_calculations_to_travel_df(travel_df: DataFrame) -> DataFrame:
     # calculate passenger flight class and create new col in dataframe
     travel_df = travel_df.withColumn(
         'passenger_class',
-        calc_passenger_class(travel_df.distance_between_airports, travel_df.traveller_type),
+        calc_passenger_class(travel_df.distance_between_locations, travel_df.traveller_type),
     )
 
     # calculate carbon emissions and create new col in dataframe
     travel_df = travel_df.withColumn(
         'est_carbon_emissions',
         calc_carbon_emissions(
-            travel_df.departure_nearest_airport,
-            travel_df.destination_nearest_airport,
+            travel_df.departure_nearest_airport_icao,
+            travel_df.destination_nearest_airport_icao,
             travel_df.passenger_class,
         ),
     )
