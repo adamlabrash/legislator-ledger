@@ -1,5 +1,6 @@
-from analysis.carbon_calculations import calc_distance_between_coordinates
 from pyspark.sql import DataFrame
+
+from analysis.carbon_calculations import calc_distance_between_coordinates
 
 MIN_TRAVEL_DISTANCE_KM = 125
 AVERAGE_COST_PER_KM_THRESHOLD = 0.5
@@ -49,7 +50,7 @@ def filter_travel_events_with_no_locations(travel_df: DataFrame) -> DataFrame:
 def filter_departures_and_destinations_with_same_airport(travel_df: DataFrame) -> DataFrame:
     travel_df = travel_df.filter(travel_df.departure != travel_df.destination)
     return travel_df.filter(
-        travel_df.departure_nearest_airport != travel_df.destination_nearest_airport
+        travel_df.departure_nearest_airport_icao != travel_df.destination_nearest_airport_icao
     )
 
 
@@ -65,19 +66,7 @@ def filter_travel_distances_under_minimum_km(travel_df: DataFrame) -> DataFrame:
     )
     # exclude travel events where distance travelled between locations is less than 125km
     travel_df = travel_df.filter(travel_df.distance_between_locations > MIN_TRAVEL_DISTANCE_KM)
-
-    travel_df = travel_df.withColumn(
-        'distance_between_airports',
-        calc_distance_between_coordinates(
-            travel_df.departure_nearest_airport_latitude,
-            travel_df.departure_nearest_airport_longitude,
-            travel_df.destination_nearest_airport_latitude,
-            travel_df.destination_nearest_airport_longitude,
-        ),
-    )
-
-    # exclude travel events where distance travelled between airports is less than 125km
-    return travel_df.filter(travel_df.distance_between_airports > MIN_TRAVEL_DISTANCE_KM)
+    return travel_df
 
 
 def filter_total_cost_below_threshold(travel_df: DataFrame) -> DataFrame:

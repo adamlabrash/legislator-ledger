@@ -1,6 +1,6 @@
 import csv
 import json
-from typing import Any, Iterator
+from typing import Iterator
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import udf
@@ -66,7 +66,7 @@ def initialize_travel_dataframe() -> DataFrame:
 
 
 def load_locations_csv() -> Iterator[Location]:
-    reader = csv.reader(open('data/locations.csv', 'r'))
+    reader = csv.reader(open('analysis/data/locations.csv', 'r'))
     next(reader)  # skip header
     for row in reader:
         yield Location.from_csv_row(row)
