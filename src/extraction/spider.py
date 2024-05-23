@@ -1,17 +1,16 @@
 from typing import Any, Generator
 
 import scrapy
-from loguru import logger
-from scrapy.crawler import CrawlerProcess
-from scrapy.http import Response
-from scrapy.selector import SelectorList
-
 from configs import (
     AWS_ACCESS_KEY_ID,
     AWS_BUCKET_NAME,
     AWS_SECRET_ACCESS_KEY,
     initialize_logger,
 )
+from loguru import logger
+from scrapy.crawler import CrawlerProcess
+from scrapy.http import Response
+from scrapy.selector import SelectorList
 
 
 class ExpendituresSpider(scrapy.Spider):
@@ -24,16 +23,17 @@ class ExpendituresSpider(scrapy.Spider):
         'AUTOTHROTTLE_TARGET_CONCURRENCY': 6,
         'AUTOTHROTTLE_START_DELAY': 1,
         'DOWNLOAD_DELAY': 0.3,
+        'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)',
         'ITEM_PIPELINES': {'extraction.pipelines.MemberExpenditureSpiderPipeline': 400},
-        # 'FEEDS': {
-        #     f's3://{AWS_BUCKET_NAME}/%(name)s/%(year)s-%(quarter)s.json': {
-        #         'format': 'json',
-        #         'encoding': 'utf8',
-        #         'store_empty': False,
-        #     }
-        # },
-        # 'AWS_ACCESS_KEY_ID': AWS_ACCESS_KEY_ID,
-        # 'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
+        'FEEDS': {
+            f's3://{AWS_BUCKET_NAME}/%(name)s/%(year)s-%(quarter)s.json': {
+                'format': 'json',
+                'encoding': 'utf8',
+                'store_empty': False,
+            }
+        },
+        'AWS_ACCESS_KEY_ID': AWS_ACCESS_KEY_ID,
+        'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
     }
 
     def __init__(self) -> None:
@@ -72,6 +72,6 @@ class ExpendituresSpider(scrapy.Spider):
 
 if __name__ == "__main__":
     logger = initialize_logger()
-    process = CrawlerProcess({'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)'})
+    process = CrawlerProcess()
     process.crawl(ExpendituresSpider)
     process.start()
