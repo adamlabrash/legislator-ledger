@@ -32,7 +32,7 @@ def initialize_travel_dataframe() -> DataFrame:
     Loads, flattens and validates data from raw expenditures json file
     '''
 
-    with open('expenditures_test.json', encoding='utf-8-sig') as f:
+    with open('expenditures.json', encoding='utf-8-sig') as f:
         expenditure_data = json.load(f)
 
     travel_expenditures: list[dict] = []
