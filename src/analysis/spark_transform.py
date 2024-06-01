@@ -1,13 +1,10 @@
-import csv
-
-from pyspark.sql import DataFrame
-
 from analysis.carbon_calculations import apply_carbon_calculations_to_travel_df
 from analysis.dataframe_loader import (
     initialize_locations_dataframe,
     initialize_travel_dataframe,
 )
 from analysis.flight_identification import identify_flight_travel_events
+from pyspark.sql import DataFrame
 
 
 def join_locations_to_travel_events(locations_df: DataFrame, travel_df: DataFrame) -> DataFrame:
@@ -40,13 +37,7 @@ def map_locations_to_flights(locations_df: DataFrame, travel_df: DataFrame) -> D
     return travel_df
 
 
-if __name__ == '__main__':
-    locations_df = initialize_locations_dataframe()
-    travel_df = initialize_travel_dataframe()
-
-    travel_with_locations_df = map_locations_to_flights(locations_df, travel_df)
-    df = identify_flight_travel_events(travel_with_locations_df)
-    df = apply_carbon_calculations_to_travel_df(df)
+def write_carbon_calculation_flights_df_to_csv(df: DataFrame) -> None:
     df = df.drop(
         'USA_points_used',
         'reg_points_used',
@@ -62,3 +53,13 @@ if __name__ == '__main__':
     df.repartition(1).write.option("delimiter", ",").option("header", "true").csv(
         "analysis/flights.csv"
     )
+
+
+if __name__ == '__main__':
+    locations_df = initialize_locations_dataframe()
+    travel_df = initialize_travel_dataframe()
+
+    travel_with_locations_df = map_locations_to_flights(locations_df, travel_df)
+    df = identify_flight_travel_events(travel_with_locations_df)
+    df = apply_carbon_calculations_to_travel_df(df)
+    write_carbon_calculation_flights_df_to_csv(df)
