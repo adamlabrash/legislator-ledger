@@ -9,7 +9,6 @@ __pycache__/
 *todo*
 *expenditures.json*
 *.json
-*.csv
 
 .timetracker
 # Distribution / packaging
