@@ -1,6 +1,5 @@
-from pyspark.sql import DataFrame
-
 from analysis.carbon_calculations import calc_distance_between_coordinates
+from pyspark.sql import DataFrame
 
 MIN_TRAVEL_DISTANCE_KM = 125
 AVERAGE_COST_PER_KM_THRESHOLD = 0.5
@@ -17,19 +16,9 @@ def identify_flight_travel_events(travel_df: DataFrame) -> DataFrame:
     - Departure and destination locations are not the same
     - The distance between locations is greater than 125km
     - The distance between airports is greater than 125km
-    - Where the distance driving to airports is greater than half of total distance travelled.
     - The total distance from the departure/destination locations to their nearest airports must be less than half of the total distance travelled.
 
     Airports are determined by matching the geo-cordinates of the expenditure location to the nearest non-military/research, public airport.
-
-    Future improvements:
-    -Look at cost per km driving vs flight
-    -Compare costs of identical travel events across the full dataset and identify drop off price for flights & drives (account for inflation)
-    -look at flight time vs driving time estimations
-    -all travel within Newfoundland is considered drives, with one or two exceptions
-    -better differentiate costs between flights and drives in the same travel claim
-    -Compare driving cost estimations to flight cost estimations of same travel event.
-    -Look at available departure/destinations of the airports/airlines
     '''
 
     travel_df = filter_travel_events_with_no_locations(travel_df)
