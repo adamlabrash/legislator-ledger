@@ -1,10 +1,38 @@
+from functools import lru_cache
+
 from analysis.carbon_calculations import apply_carbon_calculations_to_travel_df
 from analysis.dataframe_loader import (
     initialize_locations_dataframe,
     initialize_travel_dataframe,
 )
 from analysis.flight_identification import identify_flight_travel_events
+from geopy.geocoders import Nominatim
+from geopy.location import Location as GeoLocation
 from pyspark.sql import DataFrame
+
+
+@lru_cache(maxsize=1)
+def get_geo_api_client() -> Nominatim:
+    return Nominatim(user_agent="GetLoc")
+
+
+def get_geo_api_location_data(location_str: str) -> dict | None:
+    '''
+    Gets latitude and longitude of a give location using open source geo-api.
+    This information is used to build the locations.csv. Each travel expenditure should map to a location.
+    '''
+
+    geo_api = get_geo_api_client()
+    geo_location: GeoLocation = geo_api.geocode(location_str, country_codes='CA', exactly_one=True)  # type: ignore
+    if geo_location is None:
+        print("Unable to find location for:", location_str)
+        return None
+    return {
+        'name': location_str,
+        'latitude': geo_location.latitude,
+        'longitude': geo_location.longitude,
+        'address': geo_location.address,
+    }
 
 
 def join_locations_to_travel_events(locations_df: DataFrame, travel_df: DataFrame) -> DataFrame:
