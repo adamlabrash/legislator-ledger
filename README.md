@@ -184,7 +184,7 @@ Hospitality event expenditures are events that the legislator hosts. These inclu
     },
     "supplier"{ 
         "type": "string",
-        "description": "Catering company or third party that provided services/food for th event"
+        "description": "Catering company or third party that provided services/food for the event"
     },
     "total_cost": {
         "type": "decimal",
