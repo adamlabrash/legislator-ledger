@@ -10,10 +10,13 @@ from validation import build_metadata_dict, extract_expenditure_claims_from_csv_
 
 
 class MemberExpenditureSpiderPipeline:
+
+    def __init__(self):
+        self.is_first_item_written = False
+
     def open_spider(self, spider) -> None:
         self.file = open("expenditures.json", "w", encoding='utf-8-sig')
         self.file.write('[')
-        self.is_first_item_written = False
 
     def close_spider(self, spider) -> None:
         self.file.write(']')
