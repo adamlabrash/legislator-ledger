@@ -5,7 +5,6 @@ from loguru import logger
 
 from enums import ExpenditureCategory, Institution
 from items import (
-    EXPENDITURE_CLAIM,
     ContractClaim,
     HospitalityClaim,
     MemberTravelClaim,
@@ -18,7 +17,7 @@ from items import (
 # TODO build tests
 def extract_expenditure_claims_from_csv_data(
     category: ExpenditureCategory, csv_data
-) -> list[EXPENDITURE_CLAIM]:
+) -> list[HospitalityClaim | ContractClaim | MemberTravelClaim]:
     if category is ExpenditureCategory.HOSPITALITY:
         return [HospitalityClaim.from_csv_row(claim_row) for claim_row in csv_data]
     elif category is ExpenditureCategory.CONTRACTS:

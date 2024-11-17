@@ -149,9 +149,6 @@ class MemberTravelClaim(TravelClaim):  # not all travel claims are Member Travel
         return v.quantize(Decimal('1.0'))
 
 
-EXPENDITURE_CLAIM = ContractClaim | HospitalityClaim | MemberTravelClaim
-
-
 class ExpenditureItem(BaseModel, revalidate_instances='always'):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -168,7 +165,7 @@ class ExpenditureItem(BaseModel, revalidate_instances='always'):
     year: int
     quarter: int = Field(ge=1, le=4)
 
-    claim: EXPENDITURE_CLAIM
+    claim: ContractClaim | HospitalityClaim | MemberTravelClaim
 
     @model_validator(mode='before')  # type: ignore
     def strip_whitespaces(cls, v: dict) -> dict:
