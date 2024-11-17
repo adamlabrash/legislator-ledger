@@ -1,0 +1,4 @@
+pytz~=2024.2
+pydantic~=2.9.2
+Scrapy~=2.11.2
+loguru~=0.7.2
