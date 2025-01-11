@@ -97,31 +97,19 @@ const TravelExpensesGraph: React.FC<Props> = ({ data, mpName }) => {
         <CardTitle className="text-blue-100">Travel Expenses for {mpName}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-blue-500/10 border-blue-400/20">
-            <CardContent className="pt-6">
-              <div className="text-blue-100">
-                <p className="text-sm font-medium">Total Travel Expenses</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.totalSpent)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-purple-500/10 border-purple-400/20">
-            <CardContent className="pt-6">
-              <div className="text-purple-100">
-                <p className="text-sm font-medium">Days with Travel</p>
-                <p className="text-2xl font-bold">{stats.totalDays}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-green-500/10 border-green-400/20 lg:col-span-2">
-            <CardContent className="pt-6">
-              <div className="text-green-100">
-                <p className="text-sm font-medium">Highest Daily Expense</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.highestDaily)}</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="text-blue-100">
+            <p className="text-xs font-medium">Total Expenses</p>
+            <p className="text-lg font-bold">{formatCurrency(stats.totalSpent)}</p>
+          </div>
+          <div className="text-purple-100">
+            <p className="text-xs font-medium">Travel Days</p>
+            <p className="text-lg font-bold">{stats.totalDays}</p>
+          </div>
+          <div className="text-green-100">
+            <p className="text-xs font-medium">Highest Daily</p>
+            <p className="text-lg font-bold">{formatCurrency(stats.highestDaily)}</p>
+          </div>
         </div>
 
         <div className="h-[400px] w-full">

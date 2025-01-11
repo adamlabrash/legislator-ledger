@@ -173,24 +173,26 @@ const MPSearch = () => {
           {isLoadingExpenditures ? (
             <LoadingCard title="expenditure data" />
           ) : expenditureData && (
-            <>
+            <div className="space-y-8">
               <ExpenditureGraph 
                 data={expenditureData}
                 mpName={selectedMP.name}
               />
-              <TravelExpensesGraph 
-                data={expenditureData}
-                mpName={selectedMP.name}
-              />
-              <ContractExpensesGraph 
-                data={expenditureData}
-                mpName={selectedMP.name}
-              />
-              <HospitalityExpensesGraph 
-                data={expenditureData}
-                mpName={selectedMP.name}
-              />
-            </>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <TravelExpensesGraph 
+                  data={expenditureData}
+                  mpName={selectedMP.name}
+                />
+                <HospitalityExpensesGraph 
+                  data={expenditureData}
+                  mpName={selectedMP.name}
+                />
+                <ContractExpensesGraph 
+                  data={expenditureData}
+                  mpName={selectedMP.name}
+                />
+              </div>
+            </div>
           )}
         </motion.div>
       )}
@@ -205,7 +207,7 @@ const getCaucusColor = (caucus) => {
     'New Democratic Party': 'text-orange-300',
     'Bloc Québécois': 'text-blue-300',
     'Green Party': 'text-green-300',
-    'Independent': 'text-gray-300',
+    Independent: 'text-gray-300',
   };
   return colors[caucus] || 'text-gray-300';
 };

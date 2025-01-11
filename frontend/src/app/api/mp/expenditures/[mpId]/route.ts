@@ -75,23 +75,43 @@ export async function GET(
 ) {
   try {
     const supabase = createRouteHandlerClient({ cookies });
+    let allMpData = [];
+    let hasMore = true;
+    let from = 0;
+    const PAGE_SIZE = 1000; // Supabase's maximum page size
 
-    const { data: mpData, error } = await supabase
-      .from('MPData')
-      .select('year, quarter, claim')
-      .eq('mp_id', params.mpId)
-      .order('year', { ascending: true });
+    // Fetch all data using pagination
+    while (hasMore) {
+      const { data: mpData, error } = await supabase
+        .from('MPData')
+        .select('year, quarter, claim')
+        .eq('mp_id', params.mpId)
+        .order('year', { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) {
+        console.error('Supabase error:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      if (!mpData || mpData.length === 0) {
+        hasMore = false;
+      } else {
+        allMpData = [...allMpData, ...mpData];
+        from += PAGE_SIZE;
+        
+        // Check if we got less than PAGE_SIZE results, meaning we've reached the end
+        if (mpData.length < PAGE_SIZE) {
+          hasMore = false;
+        }
+      }
     }
 
-    if (!mpData?.length) {
+    if (!allMpData.length) {
       return NextResponse.json({ error: 'No expenditure data found' }, { status: 404 });
     }
 
-    const processedData = mpData.map(exp => {
+    const processedData = allMpData.map(exp => {
       try {
         let claimData;
         if (typeof exp.claim === 'string') {
@@ -138,6 +158,7 @@ export async function GET(
       }
     }).filter(Boolean);
 
+    // Sort and calculate cumulative amounts
     processedData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
     let cumulative = 0;
@@ -146,9 +167,14 @@ export async function GET(
       cumulative: (cumulative += item.amount)
     }));
 
+    // Add metadata about the data fetch
     return NextResponse.json({
       mp_id: params.mpId,
-      expenditures: finalData
+      expenditures: finalData,
+      metadata: {
+        total_records: finalData.length,
+        total_pages_fetched: Math.ceil(from / PAGE_SIZE)
+      }
     });
     
   } catch (error) {

@@ -96,39 +96,23 @@ const ContractExpensesGraph: React.FC<Props> = ({ data, mpName }) => {
         <CardTitle className="text-blue-100">Contract Expenses for {mpName}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-indigo-500/10 border-indigo-400/20">
-            <CardContent className="pt-6">
-              <div className="text-indigo-100">
-                <p className="text-sm font-medium">Total Contract Expenses</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.totalSpent)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-violet-500/10 border-violet-400/20">
-            <CardContent className="pt-6">
-              <div className="text-violet-100">
-                <p className="text-sm font-medium">Total Contracts</p>
-                <p className="text-2xl font-bold">{stats.totalContracts}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-fuchsia-500/10 border-fuchsia-400/20">
-            <CardContent className="pt-6">
-              <div className="text-fuchsia-100">
-                <p className="text-sm font-medium">Average Contract Value</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.averageContractValue)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-pink-500/10 border-pink-400/20">
-            <CardContent className="pt-6">
-              <div className="text-pink-100">
-                <p className="text-sm font-medium">Largest Contract</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.largestContract)}</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="text-indigo-100">
+            <p className="text-xs font-medium">Total Expenses</p>
+            <p className="text-lg font-bold">{formatCurrency(stats.totalSpent)}</p>
+          </div>
+          <div className="text-violet-100">
+            <p className="text-xs font-medium">Total Contracts</p>
+            <p className="text-lg font-bold">{stats.totalContracts}</p>
+          </div>
+          <div className="text-fuchsia-100">
+            <p className="text-xs font-medium">Average Value</p>
+            <p className="text-lg font-bold">{formatCurrency(stats.averageContractValue)}</p>
+          </div>
+          <div className="text-pink-100">
+            <p className="text-xs font-medium">Largest</p>
+            <p className="text-lg font-bold">{formatCurrency(stats.largestContract)}</p>
+          </div>
         </div>
 
         <div className="h-[400px] w-full">

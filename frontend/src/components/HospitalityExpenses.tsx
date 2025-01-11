@@ -98,39 +98,23 @@ const HospitalityExpensesGraph: React.FC<Props> = ({ data, mpName }) => {
         <CardTitle className="text-blue-100">Hospitality Expenses for {mpName}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-amber-500/10 border-amber-400/20">
-            <CardContent className="pt-6">
-              <div className="text-amber-100">
-                <p className="text-sm font-medium">Total Hospitality Expenses</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.totalSpent)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-orange-500/10 border-orange-400/20">
-            <CardContent className="pt-6">
-              <div className="text-orange-100">
-                <p className="text-sm font-medium">Total Events</p>
-                <p className="text-2xl font-bold">{stats.totalEvents}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-yellow-500/10 border-yellow-400/20">
-            <CardContent className="pt-6">
-              <div className="text-yellow-100">
-                <p className="text-sm font-medium">Average Event Cost</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.averageEventCost)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-lime-500/10 border-lime-400/20">
-            <CardContent className="pt-6">
-              <div className="text-lime-100">
-                <p className="text-sm font-medium">Monthly Average</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.monthlyAverage)}</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="text-amber-100">
+            <p className="text-xs font-medium">Total Expenses</p>
+            <p className="text-lg font-bold">{formatCurrency(stats.totalSpent)}</p>
+          </div>
+          <div className="text-orange-100">
+            <p className="text-xs font-medium">Total Events</p>
+            <p className="text-lg font-bold">{stats.totalEvents}</p>
+          </div>
+          <div className="text-yellow-100">
+            <p className="text-xs font-medium">Avg Event Cost</p>
+            <p className="text-lg font-bold">{formatCurrency(stats.averageEventCost)}</p>
+          </div>
+          <div className="text-lime-100">
+            <p className="text-xs font-medium">Monthly Avg</p>
+            <p className="text-lg font-bold">{formatCurrency(stats.monthlyAverage)}</p>
+          </div>
         </div>
 
         <div className="h-[400px] w-full">
