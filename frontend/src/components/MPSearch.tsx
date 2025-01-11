@@ -3,13 +3,34 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import ExpenditureGraph from '@/components/ExpenditureGraph';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 const MPSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [mps, setMps] = useState([]);
   const [filteredMps, setFilteredMps] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingExpenditures, setIsLoadingExpenditures] = useState(false);
   const supabase = createClientComponentClient();
+  const [selectedMP, setSelectedMP] = useState(null);
+  const [expenditureData, setExpenditureData] = useState(null);
+  
+  const handleMPSelect = async (mp) => {
+    setSelectedMP(mp);
+    setSearchTerm('');
+    setFilteredMps([]);
+    setIsLoadingExpenditures(true);
+    try {
+      const response = await fetch(`/api/mp/expenditures/${mp.mp_id}`);
+      const data = await response.json();
+      setExpenditureData(data);
+    } catch (error) {
+      console.error('Failed to fetch expenditure data:', error);
+    } finally {
+      setIsLoadingExpenditures(false);
+    }
+  };
 
   useEffect(() => {
     const fetchMPs = async () => {
@@ -90,40 +111,68 @@ const MPSearch = () => {
       </div>
 
       <AnimatePresence>
-  {filteredMps.length > 0 && (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="absolute w-full mt-2 bg-white/10 backdrop-blur-lg rounded-xl 
-               border border-blue-400/20 shadow-xl overflow-hidden z-50"
-    >
-      <div>
-        <ul className="list-none m-0 p-0">
-          {filteredMps.map((mp, index) => (
-            <motion.li
-              key={mp.mp_id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="w-full text-left p-4 hover:bg-white/10 cursor-pointer transition-colors"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-blue-100 font-medium">{mp.name}</h3>
-                  <p className="text-blue-200 text-sm">{mp.constituency}</p>
+        {filteredMps.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute w-full mt-2 bg-white/10 backdrop-blur-lg rounded-xl 
+                     border border-blue-400/20 shadow-xl overflow-hidden z-50"
+          >
+            <div>
+              <ul className="list-none m-0 p-0">
+                {filteredMps.map((mp, index) => (
+                  <motion.li
+                    key={mp.mp_id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="w-full text-left p-4 hover:bg-white/10 cursor-pointer transition-colors"
+                    onClick={() => handleMPSelect(mp)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-blue-100 font-medium">{mp.name}</h3>
+                        <p className="text-blue-200 text-sm">{mp.constituency}</p>
+                      </div>
+                      <span className={`text-sm font-medium ${getCaucusColor(mp.caucus)}`}>
+                        {mp.caucus}
+                      </span>
+                    </div>
+                  </motion.li>
+                ))}
+              </ul>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {selectedMP && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mt-8"
+        >
+          {isLoadingExpenditures ? (
+            <Card className="w-full bg-white/5 backdrop-blur">
+              <CardHeader className="flex flex-row items-center justify-center space-y-0">
+                <div className="flex flex-col items-center space-y-4">
+                  <CardTitle className="text-blue-100">
+                    Loading expenditure data for {selectedMP.name}...
+                  </CardTitle>
+                  <div className="w-8 h-8 border-4 border-blue-200 border-t-transparent rounded-full animate-spin" />
                 </div>
-                <span className={`text-sm font-medium ${getCaucusColor(mp.caucus)}`}>
-                  {mp.caucus}
-                </span>
-              </div>
-            </motion.li>
-          ))}
-        </ul>
-      </div>
-    </motion.div>
-  )}
-</AnimatePresence>
+              </CardHeader>
+            </Card>
+          ) : expenditureData && (
+            <ExpenditureGraph 
+              data={expenditureData}
+              mpName={selectedMP.name}
+            />
+          )}
+        </motion.div>
+      )}
     </motion.div>
   );
 };

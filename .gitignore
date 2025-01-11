@@ -306,4 +306,4 @@ graphql_schema.json
 .vs/
 
 # Project Specific
-.csv
+*.csv
