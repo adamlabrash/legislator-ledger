@@ -304,3 +304,6 @@ graphql_schema.json
 .graphql_ppx_cache
 .env.local
 .vs/
+
+# Project Specific
+.csv
