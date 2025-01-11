@@ -10,8 +10,8 @@ function convertPythonToJSON(str: string) {
 
   str = str.replace(/^`|`$/g, '');
 
-  let depth = 0;
   let inString = false;
+  let currentQuote = '';
   let escaped = false;
   let result = '';
 
@@ -27,21 +27,27 @@ function convertPythonToJSON(str: string) {
     if (!escaped && (char === "'" || char === '"')) {
       if (!inString) {
         inString = true;
+        currentQuote = char;
+        result += '"'; 
+      } else if (char === currentQuote) {
+        inString = false;
+        currentQuote = '';
         result += '"';
       } else {
-        if ((char === "'" && str[i - 1] !== '"') || 
-            (char === '"' && str[i - 1] !== "'")) {
-          inString = false;
-          result += '"';
-        } else {
-          result += char;
-        }
+        result += char;
       }
-    } else if (!inString) {
-      if (char === '{') depth++;
-      else if (char === '}') depth--;
-      
-      if (char === 'T' && str.slice(i, i + 4) === 'True') {
+    } else if (inString) {
+      if (char === '"') {
+        result += '\\"'; 
+      } else if (char === '\\') {
+        result += '\\\\'; 
+      } else {
+        result += char;
+      }
+    } else {
+      if (char === "'") {
+        result += '"'; 
+      } else if (char === 'T' && str.slice(i, i + 4) === 'True') {
         result += 'true';
         i += 3;
       } else if (char === 'F' && str.slice(i, i + 5) === 'False') {
@@ -53,17 +59,13 @@ function convertPythonToJSON(str: string) {
       } else {
         result += char;
       }
-    } else {
-      result += char;
     }
     
     escaped = false;
   }
 
-  if (!inString) {
-    result = result.replace(/'/g, '"');
-  }
-
+  result = result.replace(/\\([^"\\\/bfnrt])/g, '$1');
+  
   return result;
 }
 
@@ -89,7 +91,6 @@ export async function GET(
       return NextResponse.json({ error: 'No expenditure data found' }, { status: 404 });
     }
 
-    // Process the data
     const processedData = mpData.map(exp => {
       try {
         let claimData;

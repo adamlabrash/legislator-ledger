@@ -4,6 +4,9 @@ import { Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import ExpenditureGraph from '@/components/ExpenditureGraph';
+import TravelExpensesGraph from '@/components/TravelExpenses';
+import ContractExpensesGraph from '@/components/ContractExpenses';
+import HospitalityExpensesGraph from '@/components/HospitalityExpenses';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 const MPSearch = () => {
@@ -21,6 +24,7 @@ const MPSearch = () => {
     setSearchTerm('');
     setFilteredMps([]);
     setIsLoadingExpenditures(true);
+
     try {
       const response = await fetch(`/api/mp/expenditures/${mp.mp_id}`);
       const data = await response.json();
@@ -48,6 +52,7 @@ const MPSearch = () => {
           setMps(data);
         }
       } catch (error) {
+        console.error('Failed to fetch MPs:', error);
       } finally {
         setIsLoading(false);
       }
@@ -83,14 +88,27 @@ const MPSearch = () => {
     setSearchTerm(value);
   };
 
+  const LoadingCard = ({ title }) => (
+    <Card className="w-full bg-white/5 backdrop-blur">
+      <CardHeader className="flex flex-row items-center justify-center space-y-0">
+        <div className="flex flex-col items-center space-y-4">
+          <CardTitle className="text-blue-100">
+            Loading expenditure data for {selectedMP.name}...
+          </CardTitle>
+          <div className="w-8 h-8 border-4 border-blue-200 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </CardHeader>
+    </Card>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.3 }}
-      className="w-full max-w-3xl mx-auto relative"
+      className="w-full max-w-7xl mx-auto relative px-4"
     >
-      <div className="relative">
+      <div className="relative max-w-3xl mx-auto">
         <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-blue-200 w-6 h-6" />
         <input
           type="text"
@@ -108,18 +126,16 @@ const MPSearch = () => {
             <div className="w-5 h-5 border-2 border-blue-200 border-t-transparent rounded-full animate-spin" />
           </div>
         )}
-      </div>
 
-      <AnimatePresence>
-        {filteredMps.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute w-full mt-2 bg-white/10 backdrop-blur-lg rounded-xl 
-                     border border-blue-400/20 shadow-xl overflow-hidden z-50"
-          >
-            <div>
+        <AnimatePresence>
+          {filteredMps.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute w-full mt-2 bg-white/10 backdrop-blur-lg rounded-xl 
+                       border border-blue-400/20 shadow-xl overflow-hidden z-50"
+            >
               <ul className="list-none m-0 p-0">
                 {filteredMps.map((mp, index) => (
                   <motion.li
@@ -142,34 +158,39 @@ const MPSearch = () => {
                   </motion.li>
                 ))}
               </ul>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {selectedMP && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mt-8"
+          className="mt-8 space-y-8"
         >
           {isLoadingExpenditures ? (
-            <Card className="w-full bg-white/5 backdrop-blur">
-              <CardHeader className="flex flex-row items-center justify-center space-y-0">
-                <div className="flex flex-col items-center space-y-4">
-                  <CardTitle className="text-blue-100">
-                    Loading expenditure data for {selectedMP.name}...
-                  </CardTitle>
-                  <div className="w-8 h-8 border-4 border-blue-200 border-t-transparent rounded-full animate-spin" />
-                </div>
-              </CardHeader>
-            </Card>
+            <LoadingCard title="expenditure data" />
           ) : expenditureData && (
-            <ExpenditureGraph 
-              data={expenditureData}
-              mpName={selectedMP.name}
-            />
+            <>
+              <ExpenditureGraph 
+                data={expenditureData}
+                mpName={selectedMP.name}
+              />
+              <TravelExpensesGraph 
+                data={expenditureData}
+                mpName={selectedMP.name}
+              />
+              <ContractExpensesGraph 
+                data={expenditureData}
+                mpName={selectedMP.name}
+              />
+              <HospitalityExpensesGraph 
+                data={expenditureData}
+                mpName={selectedMP.name}
+              />
+            </>
           )}
         </motion.div>
       )}
@@ -184,7 +205,7 @@ const getCaucusColor = (caucus) => {
     'New Democratic Party': 'text-orange-300',
     'Bloc Québécois': 'text-blue-300',
     'Green Party': 'text-green-300',
-    Independent: 'text-gray-300',
+    'Independent': 'text-gray-300',
   };
   return colors[caucus] || 'text-gray-300';
 };
