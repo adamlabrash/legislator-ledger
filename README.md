@@ -18,7 +18,7 @@ This extraction system aggregates and structures 1,000,000+ expenditures, from 1
 <h2 style="text-align: center;">System Architecture</h2>
 
 
-<img loading="lazy" src="architecture_diagram.jpeg" />
+<img loading="lazy" src="/docs/architecture_diagram.jpeg" />
 
 Note that the tools used in this project were not chosen based on what is most practical. Apache Airflow, Apache Spark, and Snowflake are all a little overkill for this size of dataset, but I wanted to become more familar with these tools.
 
